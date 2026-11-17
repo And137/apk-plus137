@@ -271,6 +271,8 @@ internal fun QuickEmojiRow(
     onReact: (String) -> Unit,
     onMoreReactions: () -> Unit,
     onMoreActions: (() -> Unit)? = null,
+    /** apk-plus137: copies the message text, offered in the bar a long press opens. */
+    onCopy: (() -> Unit)? = null,
 ) {
     Row(
         // Scrollable so seven 44dp touch targets never clip on narrow (320dp) sheets.
@@ -309,6 +311,20 @@ internal fun QuickEmojiRow(
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        if (onCopy != null) {
+            IconButton(
+                onClick = onCopy,
+                modifier = Modifier.size(44.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+            ) {
+                Icon(
+                    MeshtasticIcons.Copy,
+                    contentDescription = stringResource(Res.string.copy),
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         if (onMoreActions != null) {

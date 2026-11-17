@@ -93,7 +93,7 @@ Type=Application
 Name=${app_name}
 Exec=AppRun
 Icon=${slug}
-Comment=Meshtastic Desktop Application
+Comment=Mesh+ 137 desktop client for Meshtastic radios
 Categories=Network;
 Terminal=false
 EOF

@@ -62,6 +62,8 @@ import org.meshtastic.core.ui.util.rememberMeshHudSupported
 import org.meshtastic.feature.node.compass.CompassViewModel
 import org.meshtastic.feature.node.detail.NodeDetailScreen
 import org.meshtastic.feature.node.detail.NodeDetailViewModel
+import org.meshtastic.feature.node.fwplus.OnDemandScreen
+import org.meshtastic.feature.node.fwplus.OnDemandViewModel
 import org.meshtastic.feature.node.metrics.AirQualityMetricsScreen
 import org.meshtastic.feature.node.metrics.DeviceMetricsScreen
 import org.meshtastic.feature.node.metrics.EnvironmentMetricsScreen
@@ -169,6 +171,15 @@ fun EntryProviderScope<NavKey>.nodeDetailGraph(backStack: NavBackStack<NavKey>) 
         val remoteShellViewModel = koinViewModel<RemoteShellViewModel> { parametersOf(args.destNum) }
         RemoteShellScreen(
             viewModel = remoteShellViewModel,
+            onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
+        )
+    }
+
+    // FW+ OnDemand has its own ViewModel, like RemoteShell.
+    entry<NodeDetailRoute.FwPlusOnDemand>(metadata = { ListDetailSceneStrategy.extraPane() }) { args ->
+        val onDemandViewModel = koinViewModel<OnDemandViewModel> { parametersOf(args.destNum) }
+        OnDemandScreen(
+            viewModel = onDemandViewModel,
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
         )
     }

@@ -27,6 +27,8 @@ data class VersionInfo(
     val versionName: String,
     val minFwVersion: String,
     val absMinFwVersion: String,
+    /** apk-plus137 build number on top of [versionName]; releases are tagged `v<versionName>-137.<plusBuild>`. */
+    val plusBuild: Int = 0,
 )
 
 /**
@@ -39,12 +41,15 @@ data class VersionInfo(
 fun Project.resolveVersionInfo(): VersionInfo {
     val gitVersionProvider = providers.of(GitVersionValueSource::class.java) {}
     val vcOffset = configProperties.getProperty("VERSION_CODE_OFFSET")?.toInt() ?: 0
+    val plusBuild = configProperties.getProperty("PLUS_BUILD")?.toIntOrNull() ?: 0
 
     // Providers (not findProperty/System.getenv) so the config cache tracks these as build inputs.
+    // apk-plus137 amends one commit on top of upstream, so the commit count alone repeats between our releases;
+    // adding PLUS_BUILD makes every release install as an update.
     val versionCode =
         providers.gradleProperty("android.injected.version.code").orNull?.toInt()
             ?: providers.environmentVariable("VERSION_CODE").orNull?.toInt()
-            ?: (gitVersionProvider.get().toInt() + vcOffset)
+            ?: (gitVersionProvider.get().toInt() + vcOffset + plusBuild)
 
     val versionName =
         providers.gradleProperty("android.injected.version.name").orNull
@@ -61,5 +66,6 @@ fun Project.resolveVersionInfo(): VersionInfo {
         versionName = versionName,
         minFwVersion = minFwVersion,
         absMinFwVersion = absMinFwVersion,
+        plusBuild = plusBuild,
     )
 }

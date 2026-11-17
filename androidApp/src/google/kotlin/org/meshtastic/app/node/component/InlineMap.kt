@@ -16,12 +16,13 @@
  */
 package org.meshtastic.app.node.component
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -38,11 +39,13 @@ import org.meshtastic.core.model.util.precisionRadiusMetersOrNull
 import org.meshtastic.core.ui.component.NodeChip
 
 private const val DEFAULT_ZOOM = 15f
+private const val DARK_BACKGROUND_LUMINANCE = 0.5f
 
 @OptIn(MapsComposeExperimentalApi::class)
 @Composable
 fun InlineMap(node: Node, modifier: Modifier = Modifier) {
-    val dark = isSystemInDarkTheme()
+    // fw+: follow the app theme (also a manual light/dark choice), not only the system setting
+    val dark = MaterialTheme.colorScheme.background.luminance() < DARK_BACKGROUND_LUMINANCE
     val mapColorScheme =
         when (dark) {
             true -> ComposeMapColorScheme.DARK

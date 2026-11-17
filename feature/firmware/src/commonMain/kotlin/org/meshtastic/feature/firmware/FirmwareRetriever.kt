@@ -374,10 +374,13 @@ open class FirmwareRetriever(private val fileHandler: FirmwareFileHandler) {
      */
     private val FirmwareRelease.artifactBaseUrl: String
         get() =
-            if (releaseType == FirmwareReleaseType.NIGHTLY) {
-                HttpClientDefaults.NIGHTLY_BASE_URL
-            } else {
-                "${HttpClientDefaults.RELEASE_BASE_URL}/${id.removePrefix("v")}"
+            when (releaseType) {
+                FirmwareReleaseType.NIGHTLY -> HttpClientDefaults.NIGHTLY_BASE_URL
+
+                // FW+ releases carry upstream-named OTA files (firmware-<env>-<version>.bin, -ota.zip, .uf2).
+                FirmwareReleaseType.FWPLUS -> "${HttpClientDefaults.FWPLUS_RELEASE_BASE_URL}/$id"
+
+                else -> "${HttpClientDefaults.RELEASE_BASE_URL}/${id.removePrefix("v")}"
             }
 
     private fun resolveZipUrl(url: String, targetArch: String): String {

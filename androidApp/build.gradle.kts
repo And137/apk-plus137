@@ -78,6 +78,7 @@ configure<ApplicationExtension> {
         versionName = versionInfo.versionName
         buildConfigField("String", "MIN_FW_VERSION", "\"${versionInfo.minFwVersion}\"")
         buildConfigField("String", "ABS_MIN_FW_VERSION", "\"${versionInfo.absMinFwVersion}\"")
+        buildConfigField("int", "PLUS_BUILD", "${versionInfo.plusBuild}")
         // Filter library resources to the translated languages, because some libs ship bogus languages that Google
         // Play rejects (gr).
         val ci = providers.gradleProperty("ci").map { it.toBoolean() }.getOrElse(false)

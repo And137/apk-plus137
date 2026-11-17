@@ -299,6 +299,16 @@ open class ScannerViewModel(
 
     // ── Device lists for UI ──────────────────────────────────────────────────────────────────
 
+    /** Whether remembered devices that are out of range right now are listed too (bonded BLE, recent TCP). */
+    val showRememberedDevices: StateFlow<Boolean> = uiPrefs.showRememberedDevices
+
+    fun setShowRememberedDevices(show: Boolean) = uiPrefs.setShowRememberedDevices(show)
+
+    /** User-given device names, keyed by full address; they replace the advertised name in the lists. */
+    val deviceLabels: StateFlow<Map<String, String>> = uiPrefs.deviceLabels
+
+    fun setDeviceLabel(fullAddress: String, label: String?) = uiPrefs.setDeviceLabel(fullAddress, label)
+
     /**
      * BLE devices for the UI — restricted to those currently visible via an active scan.
      *
@@ -316,12 +326,14 @@ open class ScannerViewModel(
             scannedBleDevices,
             discoveryOrder,
             radioInterfaceService.currentDeviceAddressFlow,
-        ) { discovered, scannedMap, order, selectedAddress ->
+            uiPrefs.showRememberedDevices,
+        ) { discovered, scannedMap, order, selectedAddress, showRemembered ->
             // Surface a bonded device only when it's currently visible via scan (advertising) or it's the selected
-            // device — this hides stale system-bonded peripherals that aren't nearby.
+            // device — this hides stale system-bonded peripherals that aren't nearby — unless the user asked to see
+            // the remembered ones too.
             val bonded =
                 discovered.bleDevices.filterIsInstance<DeviceListEntry.Ble>().filter {
-                    it.address in scannedMap || it.fullAddress == selectedAddress
+                    showRemembered || it.address in scannedMap || it.fullAddress == selectedAddress
                 }
             val bondedAddresses = bonded.mapTo(mutableSetOf()) { it.address }
 
@@ -362,9 +374,36 @@ open class ScannerViewModel(
     val discoveredTcpDevicesForUi: StateFlow<List<DeviceListEntry>> =
         discoveredDevicesFlow.map { it.discoveredTcpDevices }.distinctUntilChanged().stateInWhileSubscribed(emptyList())
 
-    /** Recently-used TCP addresses for the Connections device list. */
+    /**
+     * Recently-used TCP addresses that discovery has not found (those are listed as discovered). Shown when the user
+     * asked for remembered devices; the selected address always stays visible.
+     */
     val recentTcpDevicesForUi: StateFlow<List<DeviceListEntry>> =
-        discoveredDevicesFlow.map { it.recentTcpDevices }.distinctUntilChanged().stateInWhileSubscribed(emptyList())
+        combine(
+            discoveredDevicesFlow,
+            radioInterfaceService.currentDeviceAddressFlow,
+            uiPrefs.showRememberedDevices,
+        ) { discovered, selectedAddress, showRemembered ->
+            discovered.recentTcpDevices.filter { showRemembered || it.fullAddress == selectedAddress }
+        }
+            .distinctUntilChanged()
+            .stateInWhileSubscribed(emptyList())
+
+    /** How many remembered devices of each list are hidden because they are out of range. */
+    val hiddenRememberedBleCount: StateFlow<Int> =
+        combine(discoveredDevicesFlow, bleDevicesForUi) { discovered, shown ->
+            val shownAddresses = shown.mapTo(mutableSetOf()) { it.fullAddress }
+            discovered.bleDevices.count { it.fullAddress !in shownAddresses }
+        }
+            .distinctUntilChanged()
+            .stateInWhileSubscribed(0)
+
+    val hiddenRememberedTcpCount: StateFlow<Int> =
+        combine(discoveredDevicesFlow, recentTcpDevicesForUi) { discovered, shown ->
+            discovered.recentTcpDevices.size - shown.size
+        }
+            .distinctUntilChanged()
+            .stateInWhileSubscribed(0)
 
     /**
      * A firmware update that didn't finish, leaving a device stranded in bootloader mode. Non-null drives the recovery

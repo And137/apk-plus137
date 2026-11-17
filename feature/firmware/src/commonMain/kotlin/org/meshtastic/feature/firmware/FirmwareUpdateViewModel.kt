@@ -59,6 +59,9 @@ import org.meshtastic.core.model.FirmwareRelease
 import org.meshtastic.core.model.FirmwareReleaseType
 import org.meshtastic.core.model.InterfaceId
 import org.meshtastic.core.model.MyNodeInfo
+import org.meshtastic.core.model.firmwareVersionMatches
+import org.meshtastic.core.model.fwPlusFallbackHardware
+import org.meshtastic.core.model.fwPlusVersionOf
 import org.meshtastic.core.model.util.anonymize
 import org.meshtastic.core.repository.DeviceHardwareRepository
 import org.meshtastic.core.repository.FirmwareReleaseRepository
@@ -111,6 +114,12 @@ private const val DEVICE_DETACH_TIMEOUT = 60_000L
 /** How long the post-update permission preflight waits for the updated firmware to enumerate. */
 private const val USB_REATTACH_PERMISSION_WAIT = 30_000L
 private const val VERIFY_TIMEOUT = 60_000L
+
+// fw+ Mesh+ 137: a BLE/WiFi board can take minutes to come back after OTA (Hydra: OTA loader -> app swap, then a
+// slow first BLE advertisement), and a reconnect attempt sent while it is still rebooting fails and is not retried.
+// Wait longer, and re-send the address whenever the transport has given up.
+private const val VERIFY_TIMEOUT_WIRELESS = 180_000L
+private const val RECONNECT_RETRY_INTERVAL = 15_000L
 private const val VERIFY_DELAY = 2000L
 private const val MIN_BATTERY_LEVEL = 10
 private const val LOCAL_RELEASE_ID = "local"
@@ -161,7 +170,8 @@ class FirmwareUpdateViewModel(
 
     fun recordChirpyHopScore(score: Int) = uiPrefs.recordChirpyHopScore(score)
 
-    private val _selectedReleaseType = MutableStateFlow(FirmwareReleaseType.STABLE)
+    // apk-plus137: the update screen opens on the FW+ releases.
+    private val _selectedReleaseType = MutableStateFlow(FirmwareReleaseType.FWPLUS)
     val selectedReleaseType: StateFlow<FirmwareReleaseType> = _selectedReleaseType.asStateFlow()
 
     private val _selectedRelease = MutableStateFlow<FirmwareRelease?>(null)
@@ -283,7 +293,15 @@ class FirmwareUpdateViewModel(
         }
     }
 
+    /** True when the connected node runs FW+ firmware: FW+ updates are the default and stock ones carry a warning. */
+    private val _isFwPlusNode = MutableStateFlow(false)
+    val isFwPlusNode: StateFlow<Boolean> = _isFwPlusNode.asStateFlow()
+
+    /** Set once the user picks a release type; until then a FW+ node starts on the FW+ releases. */
+    private var releaseTypeChosen = false
+
     fun setReleaseType(type: FirmwareReleaseType) {
+        releaseTypeChosen = true
         _selectedReleaseType.value = type
         checkForUpdates()
     }
@@ -341,6 +359,8 @@ class FirmwareUpdateViewModel(
                 val deviceHardware = getDeviceHardware(ourNode) ?: return@launch
                 _deviceHardware.value = deviceHardware
                 _currentFirmwareVersion.value = ourNode.firmwareVersion
+                _isFwPlusNode.value = fwPlusVersionOf(ourNode.firmwareVersion) != null
+                if (!releaseTypeChosen && _isFwPlusNode.value) _selectedReleaseType.value = FirmwareReleaseType.FWPLUS
                 // Best-effort, once per check — not per release-flow emission below. A failed fetch, or one
                 // carrying no images at all, leaves the cache/seed untouched, so this never regresses the
                 // maintenance gate.
@@ -1415,13 +1435,19 @@ class FirmwareUpdateViewModel(
 
         // Wait for device to reconnect and settle
         val expected = expectedFirmwareVersion
+        val wirelessAddress = address?.takeUnless { radioPrefs.isSerial() }
         val result =
-            withTimeoutOrNull(VERIFY_TIMEOUT) {
+            withTimeoutOrNull(if (wirelessAddress != null) VERIFY_TIMEOUT_WIRELESS else VERIFY_TIMEOUT) {
+                val retry = wirelessAddress?.let { launch { retryReconnect(it) } }
                 // Wait for both Connected state and node info to be present
                 connectionState.first { it is ConnectionState.Connected }
+                retry?.cancel()
                 nodeRepository.ourNodeInfo.filterNotNull().first()
                 // A reconnect alone can be the old firmware still running; wait for the release it was given.
-                if (expected != null) nodeRepository.myNodeInfo.first { it?.firmwareVersion == expected }
+                // FW+ nodes report the release version plus their board suffix ("2.8.3.1373" -> "2.8.3.1373He3").
+                if (expected != null) {
+                    nodeRepository.myNodeInfo.first { info -> firmwareVersionMatches(info?.firmwareVersion, expected) }
+                }
                 delay(VERIFY_DELAY) // Extra buffer for initial config sync
                 true
             }
@@ -1439,6 +1465,19 @@ class FirmwareUpdateViewModel(
             firmwareRecoveryDataSource.clear()
             val wiped = factoryResetAfterVerify && sendPostUpdateFactoryReset()
             _state.value = FirmwareUpdateState.Success(wasLowSpeedTransfer, deviceWasWiped = wiped, verified = true)
+        }
+    }
+
+    /** Re-sends [address] while the transport sits idle after a failed attempt, until cancelled. */
+    private suspend fun retryReconnect(address: String) {
+        while (true) {
+            delay(RECONNECT_RETRY_INTERVAL)
+            val now = connectionState.value
+            if (now is ConnectionState.Disconnected || now is ConnectionState.DeviceSleep) {
+                Logger.i { "Post-update: device not back yet ($now), retrying connection to ${address.anonymize}" }
+                if (isBluetoothInterfaceAddress(address)) radioController.requestGattCacheInvalidationOnNextConnect()
+                radioController.setDeviceAddress(address)
+            }
         }
     }
 
@@ -1486,12 +1525,17 @@ class FirmwareUpdateViewModel(
         val target = ourNode.pioEnv
 
         return if (hwModelInt != null) {
-            deviceHardwareRepository.getDeviceHardwareByModel(hwModelInt, target).getOrElse {
+            // A model the catalog does not know comes back as success(null): FW+ PRIVATE_HW boards get a stand-in
+            // entry, anything else ends in the unknown-hardware error instead of leaving the screen on Checking.
+            val hardware =
+                deviceHardwareRepository.getDeviceHardwareByModel(hwModelInt, target).getOrNull()
+                    ?: fwPlusFallbackHardware(hwModelInt, target)
+            if (hardware == null) {
                 clearDeviceMetadata()
                 _state.value =
                     FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_unknown_hardware, hwModelInt))
-                null
             }
+            hardware
         } else {
             clearDeviceMetadata()
             _state.value = FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_node_info_missing))
@@ -1568,6 +1612,7 @@ private fun FirmwareReleaseRepository.getReleaseFlow(type: FirmwareReleaseType):
     FirmwareReleaseType.STABLE -> stableRelease
     FirmwareReleaseType.ALPHA -> alphaRelease
     FirmwareReleaseType.NIGHTLY -> nightlyRelease
+    FirmwareReleaseType.FWPLUS -> fwPlusRelease
     FirmwareReleaseType.LOCAL -> flowOf(null)
 }
 

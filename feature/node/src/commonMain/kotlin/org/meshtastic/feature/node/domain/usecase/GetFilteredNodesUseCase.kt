@@ -23,6 +23,7 @@ import org.koin.core.annotation.Single
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeSortOption
 import org.meshtastic.core.repository.NodeRepository
+import org.meshtastic.feature.node.fwplus.looksFwPlus
 import org.meshtastic.feature.node.list.NodeFilterState
 import org.meshtastic.feature.node.model.isEffectivelyUnmessageable
 import org.meshtastic.proto.Config
@@ -68,5 +69,6 @@ open class GetFilteredNodesUseCase constructor(private val nodeRepository: NodeR
                 .filter { node ->
                     if (filter.excludeUnheard) !node.isUnheardOnCurrentLora || node.num == ourNum else true
                 }
+                .filter { node -> if (filter.onlyFwPlus) node.looksFwPlus else true }
         }
 }

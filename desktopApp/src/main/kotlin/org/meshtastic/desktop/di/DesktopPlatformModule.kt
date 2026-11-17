@@ -59,6 +59,7 @@ class DesktopPlatformModule {
         override val versionName: String = DesktopBuildConfig.VERSION_NAME
         override val absoluteMinFwVersion: String = DesktopBuildConfig.ABS_MIN_FW_VERSION
         override val minFwVersion: String = DesktopBuildConfig.MIN_FW_VERSION
+        override val plusBuild: Int = DesktopBuildConfig.PLUS_BUILD
     }
 
     // LifecycleRegistry holds its owner weakly, so the owner is a definition too:

@@ -18,12 +18,13 @@
 
 package org.meshtastic.app.map.discovery
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -49,6 +50,7 @@ private const val BOUNDS_PADDING_PX = 100
 private val DirectColor = Color(0xFF4CAF50)
 private val MeshColor = Color(0xFF2196F3)
 private val UserColor = Color(0xFFFF9800)
+private const val DARK_BACKGROUND_LUMINANCE = 0.5f
 private val DirectLineColor = Color(0xFF4CAF50).copy(alpha = 0.5f)
 
 /**
@@ -62,8 +64,10 @@ fun DiscoveryGoogleMap(
     userLongitude: Double,
     nodes: List<DiscoveryMapNode>,
     modifier: Modifier = Modifier,
+    centerLabel: String? = null,
 ) {
-    val dark = isSystemInDarkTheme()
+    // fw+: follow the app theme (also a manual light/dark choice), not only the system setting
+    val dark = MaterialTheme.colorScheme.background.luminance() < DARK_BACKGROUND_LUMINANCE
     val mapColorScheme = if (dark) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT
 
     val userLatLng = remember(userLatitude, userLongitude) { LatLng(userLatitude, userLongitude) }
@@ -104,8 +108,11 @@ fun DiscoveryGoogleMap(
     ) {
         // User position marker
         if (hasValidUserPosition) {
-            MarkerComposable(state = rememberUpdatedMarkerState(position = userLatLng), title = "Your Position") {
-                DiscoveryMarkerChip(label = "You", color = UserColor)
+            MarkerComposable(
+                state = rememberUpdatedMarkerState(position = userLatLng),
+                title = centerLabel ?: "Your Position",
+            ) {
+                DiscoveryMarkerChip(label = centerLabel ?: "You", color = UserColor)
             }
         }
 

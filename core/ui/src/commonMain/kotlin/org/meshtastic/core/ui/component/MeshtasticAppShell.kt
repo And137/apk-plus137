@@ -59,20 +59,6 @@ fun MeshtasticAppShell(
         }
     }
 
-    MeshtasticCommonAppSetup(
-        uiViewModel = uiViewModel,
-        isFirmwareUpdateOpen = multiBackstack.activeBackStack.lastOrNull() is FirmwareRoute,
-        onUpdateFirmware = { multiBackstack.handleDeepLink(listOf(FirmwareRoute.FirmwareGraph)) },
-        onNavigateToTracerouteMap = { destNum, requestId, logUuid ->
-            multiBackstack.handleDeepLink(
-                listOf(
-                    NodesRoute.Nodes,
-                    NodeDetailRoute.TracerouteMap(destNum = destNum, requestId = requestId, logUuid = logUuid),
-                ),
-            )
-        },
-    )
-
     // Connected device's modem preset, provided once here so signal-quality rating is preset-relative across all
     // screens without per-screen plumbing. Distinct so the value only changes when the preset itself does.
     val radioConfigRepository = koinInject<RadioConfigRepository>()
@@ -90,15 +76,27 @@ fun MeshtasticAppShell(
         remember(nodeRepository) { nodeRepository.localStats.map { it.noiseFloorOrNull }.distinctUntilChanged() }
             .collectAsStateWithLifecycle(initialValue = null)
 
-    MeshtasticSnackbarProvider(snackbarManager = uiViewModel.snackbarManager, hostModifier = hostModifier) {
-        // Provide the activity FLOW (stable ref) — not a collected value — so it costs no recomposition; only the
-        // local-node connection badge collects it, animating in the draw phase. See LocalMeshActivity.
-        CompositionLocalProvider(
-            LocalModemPreset provides modemPreset,
-            LocalNoiseFloor provides noiseFloor,
-            LocalMeshActivity provides uiViewModel.meshActivity,
-        ) {
-            content()
+    // fw+ Mesh+ 137: the preset and noise floor wrap the shared dialogs too (AlertHost, traceroute result), which were
+    // outside and so rated traceroute SNR against the LongFast fallback (-12 dB showed green on ShortSlow).
+    CompositionLocalProvider(LocalModemPreset provides modemPreset, LocalNoiseFloor provides noiseFloor) {
+        MeshtasticCommonAppSetup(
+            uiViewModel = uiViewModel,
+            isFirmwareUpdateOpen = multiBackstack.activeBackStack.lastOrNull() is FirmwareRoute,
+            onUpdateFirmware = { multiBackstack.handleDeepLink(listOf(FirmwareRoute.FirmwareGraph)) },
+            onNavigateToTracerouteMap = { destNum, requestId, logUuid ->
+                multiBackstack.handleDeepLink(
+                    listOf(
+                        NodesRoute.Nodes,
+                        NodeDetailRoute.TracerouteMap(destNum = destNum, requestId = requestId, logUuid = logUuid),
+                    ),
+                )
+            },
+        )
+
+        MeshtasticSnackbarProvider(snackbarManager = uiViewModel.snackbarManager, hostModifier = hostModifier) {
+            // Provide the activity FLOW (stable ref) — not a collected value — so it costs no recomposition; only the
+            // local-node connection badge collects it, animating in the draw phase. See LocalMeshActivity.
+            CompositionLocalProvider(LocalMeshActivity provides uiViewModel.meshActivity) { content() }
         }
     }
 }

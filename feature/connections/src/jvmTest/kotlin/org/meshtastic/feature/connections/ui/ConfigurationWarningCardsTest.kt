@@ -25,6 +25,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import org.meshtastic.core.model.service.LockdownState
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.getString
+import org.meshtastic.core.resources.radio_setup_title
 import org.meshtastic.core.resources.set_your_region
 import org.meshtastic.core.resources.transmit_disabled
 import kotlin.test.Test
@@ -56,6 +57,19 @@ class ConfigurationWarningCardsTest {
 
         onNodeWithText(getString(Res.string.set_your_region)).assertDoesNotExist()
         onNodeWithText(getString(Res.string.transmit_disabled)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `configured radio shows no setup card`() = runComposeUiTest {
+        setWarningCards(
+            lockdownState = LockdownState.Unlocked,
+            isManaged = false,
+            regionUnset = false,
+            txDisabled = false,
+        )
+
+        onNodeWithText(getString(Res.string.radio_setup_title)).assertDoesNotExist()
+        assertNoWarningCards()
     }
 
     @Test

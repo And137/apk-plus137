@@ -17,10 +17,21 @@
 package org.meshtastic.desktop
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class UpdateCheckerTest {
+
+    @Test
+    fun `a higher plus build on the same base is an update`() {
+        assertTrue(UpdateChecker.isNewer(latest = "v2.8.5-137.2", current = "2.8.5-137.1"))
+        assertFalse(UpdateChecker.isNewer(latest = "v2.8.5-137.1", current = "2.8.5-137.1"))
+        assertFalse(UpdateChecker.isNewer(latest = "v2.8.5-137.1", current = "2.8.5-137.2"))
+        assertTrue(UpdateChecker.isNewer(latest = "v2.8.6-137.1", current = "2.8.5-137.9"))
+        assertEquals("2.8.5-137.1", UpdateChecker.plusVersion("2.8.5", 1))
+        assertEquals("2.8.5", UpdateChecker.plusVersion("2.8.5", 0))
+    }
 
     @Test
     fun `newer patch release is an update`() {

@@ -122,6 +122,9 @@ class FirmwareUpdateViewModelTest {
         val release = FirmwareRelease(id = "1", title = "1.0.0", zipUrl = "url", releaseNotes = "notes")
         every { firmwareReleaseRepository.stableRelease } returns flowOf(release)
         every { firmwareReleaseRepository.alphaRelease } returns flowOf(release)
+        // apk-plus137: the screen opens on FW+ releases; these tests describe the stable channel, so FW+ follows
+        // whatever the test stubs as the stable release.
+        every { firmwareReleaseRepository.fwPlusRelease } calls { firmwareReleaseRepository.stableRelease }
 
         every { radioPrefs.devAddr } returns MutableStateFlow("!1234abcd")
 
