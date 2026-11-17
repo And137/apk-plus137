@@ -27,6 +27,7 @@ kotlin {
         commonMain.dependencies {
             api(projects.core.repository)
             implementation(projects.core.common)
+            implementation(projects.core.fwplus)
             implementation(projects.core.database)
             implementation(projects.core.datastore)
             implementation(projects.core.di)

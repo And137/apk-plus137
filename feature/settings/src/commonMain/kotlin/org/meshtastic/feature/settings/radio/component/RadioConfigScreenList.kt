@@ -69,6 +69,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.connect_radio_to_change_settings
 import org.meshtastic.core.resources.discard_changes
+import org.meshtastic.core.resources.fwplus_try_again
 import org.meshtastic.core.resources.save_and_restart
 import org.meshtastic.core.resources.save_changes
 import org.meshtastic.core.ui.component.ListScrollbar
@@ -104,6 +105,18 @@ fun <T : Message<T, *>> RadioConfigScreenList(
     content: LazyListScope.() -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
+    // A save that failed (e.g. a remote node that timed out) keeps the footer up with "Try again": the view model
+    // applies
+    // a save to its state before the node confirms it, so the form is no longer dirty and the footer would vanish.
+    // Only an error after our own save counts; a failed read must not turn into a write of the unchanged form.
+    var saveSent by remember { mutableStateOf(false) }
+    var saveFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(responseState) {
+        if (saveSent && (responseState is ResponseState.Error || responseState is ResponseState.Success)) {
+            saveFailed = responseState is ResponseState.Error
+            saveSent = false
+        }
+    }
 
     Box(modifier = modifier) {
         Scaffold(
@@ -119,7 +132,7 @@ fun <T : Message<T, *>> RadioConfigScreenList(
                 )
             },
         ) { innerPadding ->
-            val showFooterButtons = configState.isDirty || additionalDirtyCheck()
+            val showFooterButtons = configState.isDirty || additionalDirtyCheck() || saveFailed
 
             val listState = rememberLazyListState()
             val fieldFocus = LocalSettingsFieldFocus.current
@@ -213,17 +226,23 @@ fun <T : Message<T, *>> RadioConfigScreenList(
                                     onNegativeClicked = {
                                         focusManager.clearFocus()
                                         configState.reset()
+                                        saveFailed = false
                                         onDiscard()
                                     },
                                     positiveText =
-                                    if (rebootBehavior == RebootBehavior.ALWAYS) {
+                                    if (saveFailed) {
+                                        stringResource(Res.string.fwplus_try_again)
+                                    } else if (rebootBehavior == RebootBehavior.ALWAYS) {
                                         stringResource(Res.string.save_and_restart)
                                     } else {
                                         stringResource(Res.string.save_changes)
                                     },
                                     onPositiveClicked = {
                                         focusManager.clearFocus()
-                                        if (saveEnabled) onSave(configState.value)
+                                        if (saveEnabled) {
+                                            saveSent = true
+                                            onSave(configState.value)
+                                        }
                                     },
                                 )
                             }

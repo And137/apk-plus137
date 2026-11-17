@@ -16,6 +16,7 @@
  */
 package org.meshtastic.feature.settings.radio
 
+import org.meshtastic.core.fwplus.withFwPlusSections
 import org.meshtastic.proto.LocalModuleConfig
 import org.meshtastic.proto.ModuleConfig
 
@@ -41,3 +42,5 @@ internal fun LocalModuleConfig.mergedWith(config: ModuleConfig): LocalModuleConf
         wb.mesh_beacon = config.mesh_beacon ?: mesh_beacon
     }
     .build()
+    // FW+ sections (NodeMod, NodeModAdmin, Broadcast Assist) ride in unknown fields the builder above cannot see.
+    .withFwPlusSections(config)

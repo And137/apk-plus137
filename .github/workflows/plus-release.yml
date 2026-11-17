@@ -1,0 +1,224 @@
+# apk-plus137 (Mesh+ 137) release build.
+#
+# Pushing a tag `v<VERSION_NAME_BASE>-137.<PLUS_BUILD>` (e.g. v2.8.5-137.4) builds the signed F-Droid APKs and the
+# desktop installers for Windows (MSI, EXE), Linux x64 + ARM64 (deb, rpm, AppImage) and macOS (dmg, unsigned), then
+# creates a DRAFT GitHub release with all files and SHA256SUMS.txt. Review the draft and publish it by hand.
+# It can also be started by hand for an existing tag (Actions -> Mesh+ 137 release -> Run workflow).
+#
+# Repository secrets (Settings -> Secrets and variables -> Actions), never in the repository:
+#   PLUS_KEYSTORE_BASE64   the release keystore, base64 encoded
+#   PLUS_KEYSTORE_PASSWORD keystore password
+#   PLUS_KEY_ALIAS         key alias
+#   PLUS_KEY_PASSWORD      key password
+# Without them the Android job fails instead of shipping an unsigned or debug-signed APK.
+name: Mesh+ 137 release
+
+on:
+  push:
+    tags: ['v*-137.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build, e.g. v2.8.5-137.4'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plus-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  check-version:
+    if: github.repository == 'And137/apk-plus137'
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+      # The tag must match config.properties, or the APK version code and installer versions would not fit the tag.
+      - id: version
+        run: |
+          base=$(sed -n 's/^VERSION_NAME_BASE=//p' config.properties | tr -d '\r')
+          plus=$(sed -n 's/^PLUS_BUILD=//p' config.properties | tr -d '\r')
+          expected="v${base}-137.${plus}"
+          if [ "$TAG" != "$expected" ]; then
+            echo "::error file=config.properties::tag $TAG does not match config.properties ($expected)"
+            exit 1
+          fi
+          echo "version=${base}-137.${plus}" >> "$GITHUB_OUTPUT"
+
+  android:
+    needs: check-version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+
+      - name: Gradle Setup
+        uses: ./.github/actions/gradle-setup
+        with:
+          cache_read_only: 'false'
+
+      - name: Load the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PLUS_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.PLUS_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.PLUS_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.PLUS_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::PLUS_KEYSTORE_BASE64 / PLUS_KEYSTORE_PASSWORD / PLUS_KEY_ALIAS / PLUS_KEY_PASSWORD secrets are missing"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > androidApp/release.keystore
+          # storeFile resolves relative to androidApp/ (file() in androidApp/build.gradle.kts).
+          {
+            echo "storeFile=release.keystore"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build the F-Droid release
+        run: ./gradlew :androidApp:assembleFdroidRelease --no-daemon
+
+      - name: Check the APK signature
+        run: |
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          for apk in androidApp/build/outputs/apk/fdroid/release/*.apk; do
+            "$apksigner" verify --print-certs "$apk" | tee cert.txt
+            if grep -q "CN=Android Debug" cert.txt; then
+              echo "::error::$apk is signed with the debug key"
+              exit 1
+            fi
+          done
+
+      - name: Remove the signing key
+        if: always()
+        run: rm -f androidApp/release.keystore keystore.properties
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: android
+          path: androidApp/build/outputs/apk/fdroid/release/*.apk
+          retention-days: 3
+          if-no-files-found: error
+
+  desktop:
+    needs: check-version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04, ubuntu-24.04-arm, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+
+      - name: Gradle Setup
+        uses: ./.github/actions/gradle-setup
+        with:
+          cache_read_only: 'false'
+
+      - name: Install dependencies for AppImage
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfuse2t64
+
+      # Windows: CMP's WiX packaging needs isolated projects and the configuration cache off (see release.yml).
+      - name: Package the desktop app
+        shell: bash
+        run: >
+          ./gradlew :desktopApp:packageReleaseDistributionForCurrentOS
+          '-PaboutLibraries.release=true' '-Pdesktop.release=true' --no-daemon
+          ${{ runner.os == 'Windows' && '--no-isolated-projects --no-configuration-cache' || '' }}
+
+      - name: Build the AppImage
+        if: runner.os == 'Linux'
+        env:
+          APP_VERSION_NAME: ${{ needs.check-version.outputs.version }}
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          UPDATE_RELEASE_TAG: latest
+        run: scripts/build-appimage.sh
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: desktop-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            desktopApp/build/compose/binaries/main-release/*/*.msi
+            desktopApp/build/compose/binaries/main-release/*/*.exe
+            desktopApp/build/compose/binaries/main-release/*/*.dmg
+            desktopApp/build/compose/binaries/main-release/*/*.deb
+            desktopApp/build/compose/binaries/main-release/*/*.rpm
+            desktopApp/build/compose/binaries/main-release/*/*.AppImage
+            desktopApp/build/compose/binaries/main-release/*/*.AppImage.zsync
+          retention-days: 3
+          if-no-files-found: error
+
+  release:
+    needs: [check-version, android, desktop]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          path: artifacts
+
+      # Same file names as the hand-made releases: MeshPlus137-<version>-<variant>.<ext>. AppImages keep the name the
+      # build gave them, because their embedded update info looks for that name.
+      - name: Collect and name the files
+        env:
+          VERSION: ${{ needs.check-version.outputs.version }}
+        run: |
+          mkdir out
+          for f in artifacts/android/*.apk; do
+            variant=$(basename "$f" | sed -E 's/^androidApp-fdroid-(.*)-release\.apk$/\1/')
+            cp "$f" "out/MeshPlus137-$VERSION-$variant.apk"
+          done
+          for dir in artifacts/desktop-*; do
+            case "$dir" in
+              *-Linux-X64) arch=amd64; rpmarch=x86_64 ;;
+              *-Linux-ARM64) arch=arm64; rpmarch=aarch64 ;;
+              *-macOS-*) arch=$(echo "${dir##*-}" | tr '[:upper:]' '[:lower:]') ;;
+              *) arch="" ;;
+            esac
+            find "$dir" -type f | while read -r f; do
+              case "$f" in
+                *.msi) cp "$f" "out/MeshPlus137-$VERSION-windows.msi" ;;
+                *.exe) cp "$f" "out/MeshPlus137-$VERSION-windows.exe" ;;
+                *.dmg) cp "$f" "out/MeshPlus137-$VERSION-macos-$arch.dmg" ;;
+                *.deb) cp "$f" "out/MeshPlus137-$VERSION-linux-$arch.deb" ;;
+                *.rpm) cp "$f" "out/MeshPlus137-$VERSION-linux-$rpmarch.rpm" ;;
+                *.AppImage|*.AppImage.zsync) cp "$f" out/ ;;
+              esac
+            done
+          done
+          cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check-version.outputs.version }}
+        run: |
+          build=${VERSION##*-137.}
+          base=${VERSION%-137.*}
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" out/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+              --title "Mesh+ 137 - $base (build $build)" \
+              --notes "Built by GitHub Actions from $TAG. Replace this text with the release notes before publishing."
+          fi

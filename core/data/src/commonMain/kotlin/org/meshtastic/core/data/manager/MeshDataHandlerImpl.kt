@@ -26,6 +26,8 @@ import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.ServiceScope
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.nowSeconds
+import org.meshtastic.core.fwplus.FwPlusPortNum
+import org.meshtastic.core.fwplus.portNumValue
 import org.meshtastic.core.model.Channel
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.MeshBeaconOffer
@@ -75,6 +77,8 @@ import org.meshtastic.core.resources.error_duty_cycle
 import org.meshtastic.core.resources.getStringSuspend
 import org.meshtastic.core.resources.unknown_username
 import org.meshtastic.core.resources.waypoint_received
+import org.meshtastic.fwplus.proto.NodeMod
+import org.meshtastic.fwplus.proto.OnDemand
 import org.meshtastic.proto.MeshBeacon
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.Paxcount
@@ -130,6 +134,11 @@ class MeshDataHandlerImpl(
         val dataPacket = dataMapper.toDataPacket(packet) ?: return
         val fromUs = myNodeNum == packet.from
         dataPacket.status = MessageStatus.RECEIVED
+
+        // FW+ sniffer: with "Sniffer enabled" the radio also forwards transit packets addressed to another node. They
+        // are logged and reach the packet stream for the sniffer screen, but are never our messages, contacts or
+        // replies, so none of the regular handling may see them (a sniffed DM would otherwise land in a conversation).
+        if (packet.isSniffedTransit(myNodeNum)) return
 
         handleDataPacket(packet, dataPacket, myNodeNum, fromUs, session, logUuid, logInsertJob)
 
@@ -222,6 +231,30 @@ class MeshDataHandlerImpl(
 
             PortNum.MESH_BEACON_APP -> {
                 handleMeshBeacon(packet, myNodeNum, session)
+            }
+
+            // FW+ ports are absent from the upstream enum, so they arrive here as UNKNOWN_APP.
+            PortNum.UNKNOWN_APP -> handleFwPlusPacket(packet, session)
+
+            else -> {}
+        }
+    }
+
+    private fun handleFwPlusPacket(packet: MeshPacket, session: RadioSessionContext) {
+        val decoded = packet.decoded ?: return
+        when (decoded.portNumValue) {
+            FwPlusPortNum.NODE_MOD_APP -> {
+                val nodeMod = NodeMod.ADAPTER.decodeOrNull(decoded.payload, Logger) ?: return
+                nodeManager.handleReceivedFwPlusStatus(packet.from, nodeMod.text_status, nodeMod.emoji, session)
+            }
+
+            // Only FW+ firmware answers OnDemand, so a response marks its sender as FW+. Requests (from other phones on
+            // the mesh asking someone else) say nothing about the sender's firmware.
+            FwPlusPortNum.ON_DEMAND_APP -> {
+                val response = OnDemand.ADAPTER.decodeOrNull(decoded.payload, Logger)?.response
+                if (response != null && packet.from != 0) {
+                    nodeManager.markFwPlus(packet.from, session, response.fw_plus_version?.version_number)
+                }
             }
 
             else -> {}
@@ -700,6 +733,9 @@ class MeshDataHandlerImpl(
                     }
                 }
         }
+
+    private fun MeshPacket.isSniffedTransit(myNodeNum: Int): Boolean =
+        from != myNodeNum && to != myNodeNum && to != NodeAddress.NODENUM_BROADCAST && to != 0
 
     private fun DataPacket.contactKey(myNodeNum: Int): String {
         val contactId = if (isFromLocal(myNodeNum) || isBroadcast) to else from

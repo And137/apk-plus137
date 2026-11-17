@@ -107,6 +107,9 @@ sealed interface NodeDetailRoute : Route {
     @Serializable data class NeighborInfoLog(val destNum: Int) : NodeDetailRoute
 
     @Serializable data class RemoteShell(val destNum: Int) : NodeDetailRoute
+
+    /** FW+ OnDemand: remote statistics a firmware-plus node reports on request. */
+    @Serializable data class FwPlusOnDemand(val destNum: Int) : NodeDetailRoute
 }
 
 @Serializable
@@ -185,6 +188,16 @@ sealed interface SettingsRoute : Route {
     @Serializable data object TAK : SettingsRoute
 
     @Serializable data object MeshBeacon : SettingsRoute
+
+    // FW+ (firmware-plus) module screens.
+    @Serializable data object FwPlusConfig : SettingsRoute
+
+    @Serializable data object FwPlusNodeStatus : SettingsRoute
+
+    @Serializable data object FwPlusBroadcastAssist : SettingsRoute
+
+    /** FW+ sniffer: received packets, including transit packets a sniffing FW+ radio forwards. */
+    @Serializable data object FwPlusSniffer : SettingsRoute
 
     // endregion
 

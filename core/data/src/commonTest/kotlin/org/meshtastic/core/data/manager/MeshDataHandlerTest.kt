@@ -39,6 +39,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.common.di.asServiceScope
+import org.meshtastic.core.fwplus.FwPlusPortNum
+import org.meshtastic.core.fwplus.portNumValue
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.MessageStatus
@@ -67,6 +69,7 @@ import org.meshtastic.core.repository.StoreForwardPacketHandler
 import org.meshtastic.core.repository.TelemetryPacketHandler
 import org.meshtastic.core.repository.TracerouteHandler
 import org.meshtastic.core.testing.FakeNotificationPrefs
+import org.meshtastic.fwplus.proto.NodeMod
 import org.meshtastic.proto.ChannelSet
 import org.meshtastic.proto.ChannelSettings
 import org.meshtastic.proto.Config
@@ -443,6 +446,84 @@ class MeshDataHandlerTest {
         handler.handleReceivedData(packet, 123)
 
         verify { nodeManager.handleReceivedPaxcounter(remoteNum, any(), session) }
+    }
+
+    // --- FW+ handling ---
+
+    @Test
+    fun `fw plus node mod packet delegates status to nodeManager`() {
+        val remoteNum = 456
+        val nodeMod = NodeMod(text_status = "Lasocice", emoji = "!")
+        val packet =
+            MeshPacket.Builder()
+                .also { wb ->
+                    wb.from = remoteNum
+                    wb.decoded =
+                        Data.Builder()
+                            .portNumValue(FwPlusPortNum.NODE_MOD_APP)
+                            .also { wb -> wb.payload = nodeMod.encode().toByteString() }
+                            .build()
+                }
+                .build()
+        val dataPacket =
+            DataPacket(
+                from = "!remote",
+                to = NodeAddress.ID_BROADCAST,
+                bytes = nodeMod.encode().toByteString(),
+                dataType = FwPlusPortNum.NODE_MOD_APP,
+            )
+        every { dataMapper.toDataPacket(packet) } returns dataPacket
+
+        handler.handleReceivedData(packet, 123)
+
+        verify { nodeManager.handleReceivedFwPlusStatus(remoteNum, "Lasocice", "!", session) }
+    }
+
+    private fun onDemandPacket(from: Int, onDemand: org.meshtastic.fwplus.proto.OnDemand): MeshPacket =
+        MeshPacket.Builder()
+            .also { wb ->
+                wb.from = from
+                wb.decoded =
+                    Data.Builder()
+                        .portNumValue(FwPlusPortNum.ON_DEMAND_APP)
+                        .also { wb -> wb.payload = onDemand.encode().toByteString() }
+                        .build()
+            }
+            .build()
+
+    @Test
+    fun `fw plus OnDemand response marks its sender as FW+`() {
+        val response =
+            org.meshtastic.fwplus.proto.OnDemand(
+                response =
+                org.meshtastic.fwplus.proto.OnDemandResponse(
+                    response_type = org.meshtastic.fwplus.proto.OnDemandType.RESPONSE_FW_PLUS_VERSION,
+                    fw_plus_version = org.meshtastic.fwplus.proto.FwPlusVersion(version_number = 1373),
+                ),
+            )
+        val packet = onDemandPacket(456, response)
+        every { dataMapper.toDataPacket(packet) } returns
+            DataPacket(to = NodeAddress.ID_BROADCAST, bytes = null, dataType = FwPlusPortNum.ON_DEMAND_APP)
+
+        handler.handleReceivedData(packet, 123)
+
+        verify { nodeManager.markFwPlus(456, session, 1373) }
+    }
+
+    @Test
+    fun `fw plus OnDemand request does not mark its sender`() {
+        val request =
+            org.meshtastic.fwplus.proto.OnDemand(
+                request =
+                org.meshtastic.fwplus.proto.OnDemandRequest(org.meshtastic.fwplus.proto.OnDemandType.REQUEST_PING),
+            )
+        val packet = onDemandPacket(456, request)
+        every { dataMapper.toDataPacket(packet) } returns
+            DataPacket(to = NodeAddress.ID_BROADCAST, bytes = null, dataType = FwPlusPortNum.ON_DEMAND_APP)
+
+        handler.handleReceivedData(packet, 123)
+
+        verify(exactly(0)) { nodeManager.markFwPlus(any(), any(), any()) }
     }
 
     // --- Traceroute handling ---
@@ -1045,6 +1126,39 @@ class MeshDataHandlerTest {
     }
 
     // --- Text message handling ---
+
+    @Test
+    fun `sniffed transit DM between two other nodes is never persisted`() = testScope.runTest {
+        val packet =
+            MeshPacket.Builder()
+                .also { wb ->
+                    wb.id = 43
+                    wb.from = 456
+                    wb.to = 789
+                    wb.decoded =
+                        Data.Builder()
+                            .also { wb ->
+                                wb.portnum = PortNum.TEXT_MESSAGE_APP
+                                wb.payload = "private".encodeToByteArray().toByteString()
+                            }
+                            .build()
+                }
+                .build()
+        val dataPacket =
+            DataPacket(
+                id = 43,
+                from = "!remote",
+                to = "!other",
+                bytes = "private".encodeToByteArray().toByteString(),
+                dataType = PortNum.TEXT_MESSAGE_APP.value,
+            )
+        every { dataMapper.toDataPacket(packet) } returns dataPacket
+
+        handler.handleReceivedData(packet, 123)
+        advanceUntilIdle()
+
+        verifySuspend(exactly(0)) { packetRepository.insert(any(), any(), any(), any(), any(), any()) }
+    }
 
     @Test
     fun `text message is persisted via rememberDataPacket`() = testScope.runTest {

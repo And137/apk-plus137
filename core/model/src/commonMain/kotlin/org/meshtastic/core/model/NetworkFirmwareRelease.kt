@@ -70,3 +70,26 @@ fun NetworkFirmwareNightly.asFirmwareRelease(): NetworkFirmwareRelease? {
         zipUrl = "",
     )
 }
+
+/** apk-plus137: a GitHub release of And137/firmware-plus137 (only the fields the app uses). */
+@Serializable
+data class NetworkFwPlusRelease(
+    @SerialName("tag_name") val tagName: String = "",
+    @SerialName("name") val name: String? = null,
+    @SerialName("body") val body: String? = null,
+    @SerialName("html_url") val htmlUrl: String = "",
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("prerelease") val prerelease: Boolean = false,
+)
+
+/** The FW+ release as a firmware release; null for drafts or a release without a tag. */
+fun NetworkFwPlusRelease.asFirmwareRelease(): NetworkFirmwareRelease? {
+    if (draft || tagName.isBlank()) return null
+    return NetworkFirmwareRelease(
+        id = tagName,
+        pageUrl = htmlUrl,
+        releaseNotes = body.orEmpty(),
+        title = name?.takeIf { it.isNotBlank() } ?: "FW+ firmware ${tagName.removePrefix("v")}",
+        zipUrl = "",
+    )
+}

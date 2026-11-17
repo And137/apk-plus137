@@ -31,15 +31,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldLabelPosition
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.isValidAddress
 import org.meshtastic.core.network.repository.NetworkConstants
@@ -130,4 +134,27 @@ internal fun manualTcpAddress(address: String, portText: String): String? {
         port != null && port != NetworkConstants.SERVICE_PORT -> "$address:$portText"
         else -> address
     }
+}
+
+/** The manual network address sheet; [onDismiss] runs once it has slid away. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ManualAddressSheet(onAdd: (address: String, fullAddress: String) -> Unit, onDismiss: () -> Unit) {
+    val sheetState =
+        rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        )
+    val scope = rememberCoroutineScope()
+    val hideAndDismiss: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion { if (!sheetState.isVisible) onDismiss() }
+    }
+    AddDeviceDialog(
+        sheetState = sheetState,
+        onHideDialog = hideAndDismiss,
+        onClickAdd = { address, fullAddress ->
+            onAdd(address, fullAddress)
+            hideAndDismiss()
+        },
+    )
 }

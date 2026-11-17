@@ -19,6 +19,7 @@ package org.meshtastic.feature.messaging.navigation
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.NonRestartableComposable
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation3.runtime.EntryProviderScope
@@ -29,15 +30,20 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import org.koin.compose.viewmodel.koinViewModel
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.navigation.ContactsRoute
+import org.meshtastic.core.navigation.MapRoute
 import org.meshtastic.core.navigation.NodesRoute
 import org.meshtastic.core.navigation.SettingsRoute
 import org.meshtastic.core.navigation.replaceLast
 import org.meshtastic.core.ui.component.ScrollToTopEvent
 import org.meshtastic.feature.messaging.QuickChatScreen
 import org.meshtastic.feature.messaging.QuickChatViewModel
+import org.meshtastic.feature.messaging.component.LocalSenderMenu
+import org.meshtastic.feature.messaging.component.SenderMenu
 import org.meshtastic.feature.messaging.ui.contact.AdaptiveContactsScreen
 import org.meshtastic.feature.messaging.ui.contact.ContactsViewModel
 import org.meshtastic.feature.messaging.ui.sharing.ShareScreen
+import org.meshtastic.feature.node.component.NodeQuickActionsViewModel
+import org.meshtastic.feature.node.component.NodeQuickMenu
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Suppress("LongMethod")
@@ -65,17 +71,32 @@ fun EntryProviderScope<NavKey>.contactsGraph(
         val messageViewModel: org.meshtastic.feature.messaging.MessageViewModel =
             koinViewModel(key = "messages-$contactKey")
         messageViewModel.setContactKey(contactKey)
+        val nodeActions: NodeQuickActionsViewModel = koinViewModel()
+        val senderMenu: SenderMenu = { node, expanded, onDismiss ->
+            NodeQuickMenu(
+                node = node,
+                expanded = expanded,
+                onDismiss = onDismiss,
+                viewModel = nodeActions,
+                onMessage = { key -> backStack.add(ContactsRoute.Messages(key)) },
+                onMore = { backStack.add(NodesRoute.NodeDetail(node.num)) },
+                onOpenCompass = { backStack.add(NodesRoute.NodeDetail(node.num, openCompass = true)) },
+                onOpenMeshView = { backStack.add(MapRoute.MeshHud(focusNodeNum = node.num)) },
+            )
+        }
 
-        org.meshtastic.feature.messaging.MessageScreen(
-            contactKey = contactKey,
-            message = args.message,
-            viewModel = messageViewModel,
-            navigateToNodeDetails = { id -> backStack.add(NodesRoute.NodeDetail(id)) },
-            navigateToQuickChatOptions =
-            dropUnlessResumed { backStack.add(org.meshtastic.core.navigation.ContactsRoute.QuickChat) },
-            navigateToFilterSettings = dropUnlessResumed { backStack.add(SettingsRoute.FilterSettings) },
-            onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() },
-        )
+        CompositionLocalProvider(LocalSenderMenu provides senderMenu) {
+            org.meshtastic.feature.messaging.MessageScreen(
+                contactKey = contactKey,
+                message = args.message,
+                viewModel = messageViewModel,
+                navigateToNodeDetails = { id -> backStack.add(NodesRoute.NodeDetail(id)) },
+                navigateToQuickChatOptions =
+                dropUnlessResumed { backStack.add(org.meshtastic.core.navigation.ContactsRoute.QuickChat) },
+                navigateToFilterSettings = dropUnlessResumed { backStack.add(SettingsRoute.FilterSettings) },
+                onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() },
+            )
+        }
     }
 
     entry<ContactsRoute.Share>(metadata = { ListDetailSceneStrategy.extraPane() }) { args ->

@@ -144,7 +144,7 @@ private const val DISK_CACHE_MAX_BYTES = 32L * 1024L * 1024L // 32 MiB
 private const val SKIP_CONNECT_CONFIRM_ARG = "--skip-connect-confirm"
 
 /** The window title, and the title the Linux tray item reports to its host. */
-private const val APP_WINDOW_TITLE = "Meshtastic Desktop"
+private const val APP_WINDOW_TITLE = "Mesh+ 137"
 
 /**
  * Loads an SVG from JVM classpath resources and returns a [Painter].
@@ -265,7 +265,7 @@ private fun MeshServiceLifecycle() {
 private fun ApplicationScope.ThemeAndLocaleProvider(uiViewModel: UIViewModel) {
     val systemLocale = remember { Locale.getDefault() }
     val uiPrefs = koinInject<UiPrefs>()
-    val themePref by uiPrefs.theme.collectAsState(initial = -1)
+    val themePref by uiPrefs.theme.collectAsState(initial = 2)
     val localePref by uiPrefs.locale.collectAsState(initial = "")
     Locale.setDefault(resolveLocale(localePref, systemLocale))
 
@@ -379,7 +379,9 @@ private fun rememberAvailableUpdate(notificationManager: DesktopNotificationMana
     val updateInfo by
         produceState<UpdateChecker.UpdateInfo?>(initialValue = null) {
             if (!buildConfig.isDebug && System.getenv("FLATPAK_ID") == null) {
-                value = UpdateChecker(httpClient).check(buildConfig.versionName)
+                value =
+                    UpdateChecker(httpClient)
+                        .check(UpdateChecker.plusVersion(buildConfig.versionName, DesktopBuildConfig.PLUS_BUILD))
             }
         }
 

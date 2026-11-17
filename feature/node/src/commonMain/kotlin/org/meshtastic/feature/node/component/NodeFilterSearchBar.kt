@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.NodeSortOption
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.fwplus_filter_known_only
 import org.meshtastic.core.resources.node_filter_exclude_infrastructure
 import org.meshtastic.core.resources.node_filter_exclude_mqtt
 import org.meshtastic.core.resources.node_filter_exclude_unheard
@@ -144,6 +145,8 @@ data class NodeFilterToggles(
     val onToggleOnlySigned: () -> Unit,
     val onlyEncrypted: Boolean,
     val onToggleOnlyEncrypted: () -> Unit,
+    val onlyFwPlus: Boolean = false,
+    val onToggleOnlyFwPlus: () -> Unit = {},
 )
 
 @Suppress("LongMethod")
@@ -258,6 +261,12 @@ private fun NodeSortButton(
                 text = stringResource(Res.string.node_filter_exclude_unheard),
                 checked = toggles.excludeUnheard,
                 onClick = toggles.onToggleExcludeUnheard,
+            )
+
+            DropdownMenuCheck(
+                text = stringResource(Res.string.fwplus_filter_known_only),
+                checked = toggles.onlyFwPlus,
+                onClick = toggles.onToggleOnlyFwPlus,
             )
         }
     }

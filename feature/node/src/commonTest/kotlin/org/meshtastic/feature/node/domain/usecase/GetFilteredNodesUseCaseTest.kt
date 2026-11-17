@@ -226,4 +226,19 @@ class GetFilteredNodesUseCaseTest {
 
         assertEquals(listOf(1, 2), result.map { it.num }.sorted())
     }
+
+    @Test
+    fun `the known FW+ filter keeps only nodes known to run FW+`() = runTest {
+        val nodes =
+            listOf(
+                createNode(1),
+                createNode(2).copy(fwPlusSeen = true),
+                createNode(3).copy(fwPlusVersion = 1373),
+            )
+        every { nodeRepository.getNodes() } returns flowOf(nodes)
+
+        val result = useCase(NodeFilterState(onlyFwPlus = true), NodeSortOption.LAST_HEARD).first()
+
+        assertEquals(listOf(2, 3), result.map { it.num }.sorted())
+    }
 }

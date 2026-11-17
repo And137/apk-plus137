@@ -70,6 +70,8 @@ import org.meshtastic.core.resources.encryption_error
 import org.meshtastic.core.resources.encryption_error_text
 import org.meshtastic.core.resources.error
 import org.meshtastic.core.resources.formatDuration
+import org.meshtastic.core.resources.fwplus_status
+import org.meshtastic.core.resources.fwplus_version
 import org.meshtastic.core.resources.hops_away
 import org.meshtastic.core.resources.long_name
 import org.meshtastic.core.resources.no_public_key
@@ -86,6 +88,7 @@ import org.meshtastic.core.resources.short_name
 import org.meshtastic.core.resources.snr
 import org.meshtastic.core.resources.status_message
 import org.meshtastic.core.resources.transport
+import org.meshtastic.core.resources.unknown
 import org.meshtastic.core.resources.uptime
 import org.meshtastic.core.resources.user_id
 import org.meshtastic.core.ui.component.Glyph
@@ -101,6 +104,7 @@ import org.meshtastic.core.ui.icon.HopCount
 import org.meshtastic.core.ui.icon.KeyOff
 import org.meshtastic.core.ui.icon.Lock
 import org.meshtastic.core.ui.icon.LockOpen
+import org.meshtastic.core.ui.icon.Memory
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Notes
 import org.meshtastic.core.ui.icon.Person
@@ -112,6 +116,8 @@ import org.meshtastic.core.ui.util.LocalModemPreset
 import org.meshtastic.core.ui.util.LocalNoiseFloor
 import org.meshtastic.core.ui.util.createClipEntry
 import org.meshtastic.core.ui.util.formatAgo
+import org.meshtastic.feature.node.fwplus.knownFwPlusVersion
+import org.meshtastic.feature.node.fwplus.looksFwPlus
 import org.meshtastic.proto.MeshPacket.TransportMechanism
 import kotlin.io.encoding.Base64
 
@@ -195,6 +201,24 @@ private fun MainNodeDetails(node: Node, isLocal: Boolean, onRequestUserInfo: (()
         node.nodeStatus?.let { status ->
             SectionDivider()
             StatusMessageRow(status)
+        }
+        node.fwPlusStatusLine?.let { status ->
+            SectionDivider()
+            InfoItem(
+                label = stringResource(Res.string.fwplus_status),
+                value = status,
+                icon = MeshtasticIcons.Notes,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (node.looksFwPlus) {
+            SectionDivider()
+            InfoItem(
+                label = stringResource(Res.string.fwplus_version),
+                value = node.knownFwPlusVersion?.toString() ?: stringResource(Res.string.unknown),
+                icon = MeshtasticIcons.Memory,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         SectionDivider()
         NodeIdentificationRow(node)

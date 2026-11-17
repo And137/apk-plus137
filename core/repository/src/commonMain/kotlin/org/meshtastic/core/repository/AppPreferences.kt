@@ -129,6 +129,20 @@ interface UiPrefs {
 
     fun setHasShownNotPairedWarning(shown: Boolean)
 
+    /**
+     * Whether the Connections list also shows remembered devices that are not in range right now: bonded Bluetooth
+     * radios that are not advertising and recent network addresses that discovery has not found.
+     */
+    val showRememberedDevices: StateFlow<Boolean>
+
+    fun setShowRememberedDevices(show: Boolean)
+
+    /** User-given names for devices on the Connections lists, keyed by the device's full address. Local only. */
+    val deviceLabels: StateFlow<Map<String, String>>
+
+    /** Sets the name shown for [fullAddress]; null or blank removes it. */
+    fun setDeviceLabel(fullAddress: String, label: String?)
+
     val showQuickChat: StateFlow<Boolean>
 
     /** Flips the stored value, not [showQuickChat]'s snapshot, which lags a pending write. */

@@ -36,5 +36,8 @@ enum class FirmwareReleaseType {
 
     /** Nightly preview from the nightly host's root; gated behind the modules unlock. */
     NIGHTLY,
+
+    /** apk-plus137: the latest FW+ release (And137/firmware-plus137 on GitHub), the default for FW+ nodes. */
+    FWPLUS,
     LOCAL,
 }

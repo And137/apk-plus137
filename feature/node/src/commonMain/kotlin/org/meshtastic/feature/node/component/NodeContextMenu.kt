@@ -39,6 +39,7 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.add_favorite
 import org.meshtastic.core.resources.edit_name
+import org.meshtastic.core.resources.fwplus_more
 import org.meshtastic.core.resources.ignore
 import org.meshtastic.core.resources.mesh_hud_open
 import org.meshtastic.core.resources.message
@@ -59,6 +60,7 @@ import org.meshtastic.core.ui.icon.DeleteNode
 import org.meshtastic.core.ui.icon.DoDisturb
 import org.meshtastic.core.ui.icon.Edit
 import org.meshtastic.core.ui.icon.Favorite
+import org.meshtastic.core.ui.icon.Info
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Message
 import org.meshtastic.core.ui.icon.NotFavorite
@@ -96,6 +98,8 @@ fun NodeContextMenu(
     onOpenMeshView: () -> Unit = {},
     onOpenCompass: () -> Unit = {},
     onSetDisplayName: () -> Unit = {},
+    /** apk-plus137: when set, a last "More…" item that opens the node's details. */
+    onMore: (() -> Unit)? = null,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
@@ -126,6 +130,11 @@ fun NodeContextMenu(
         DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
             IgnoreMenuItem(node, onIgnore, onDismiss)
             RemoveMenuItem(node, onRemove, onDismiss)
+        }
+        onMore?.let { more ->
+            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                MenuItem(MeshtasticIcons.Info, stringResource(Res.string.fwplus_more), more, onDismiss)
+            }
         }
     }
 }
@@ -248,7 +257,7 @@ private fun TraceRouteMenuItem(
     // Seconds until the radio takes another traceroute; 0 when it would take one now.
     var secondsLeft by remember { mutableLongStateOf(0L) }
     LaunchedEffect(lastTracerouteTime) {
-        val endTime = (lastTracerouteTime ?: 0L) + COOL_DOWN_TIME_MS
+        val endTime = (lastTracerouteTime ?: 0L) + TRACEROUTE_COOL_DOWN_TIME_MS
         secondsLeft = cooldownSecondsLeft(endTime)
         while (secondsLeft > 0) {
             delay(COOLDOWN_TICK_MS)

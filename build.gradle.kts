@@ -36,6 +36,7 @@ plugins {
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.kover)
     alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.wire) apply false
     alias(libs.plugins.dokka)
     alias(libs.plugins.meshtastic.root)
     alias(libs.plugins.meshtastic.docs)

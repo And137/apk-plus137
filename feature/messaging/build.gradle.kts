@@ -28,6 +28,8 @@ kotlin {
             implementation(projects.core.repository)
             implementation(projects.core.resources)
             implementation(projects.core.ui)
+            // apk-plus137: the Nodes tab's context menu on a sender's chip.
+            implementation(projects.feature.node)
 
             implementation(libs.androidx.paging.common)
             implementation(libs.androidx.paging.compose)

@@ -79,6 +79,10 @@ interface MeshLogDao {
     )
     fun getLogsFromPort(fromNum: Int, portNum: Int, maxItem: Int): Flow<List<MeshLog>>
 
+    /** FW+ packet counter: received mesh packets logged from [fromNum] since [since] (epoch millis). */
+    @Query("SELECT COUNT(*) FROM log WHERE from_num = :fromNum AND type = 'Packet' AND received_date >= :since")
+    fun countPacketsFrom(fromNum: Int, since: Long): Flow<Int>
+
     /** The newest log of [type], or null. Re-runs on every log write, so it reads one row through its index. */
     @Query("SELECT * FROM log WHERE type = :type ORDER BY received_date DESC LIMIT 1")
     fun getLatestOfType(type: String): Flow<MeshLog?>

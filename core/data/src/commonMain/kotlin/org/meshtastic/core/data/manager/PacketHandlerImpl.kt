@@ -38,6 +38,7 @@ import org.meshtastic.core.common.di.ServiceScope
 import org.meshtastic.core.common.util.handledLaunch
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.database.dao.shouldApplyOutgoingQueueStatus
+import org.meshtastic.core.fwplus.portNumValue
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.MeshLog
 import org.meshtastic.core.model.MessageStatus
@@ -224,7 +225,7 @@ class PacketHandlerImpl(
                     received_date = nowMillis,
                     raw_message = packet.toString(),
                     fromNum = MeshLog.NODE_NUM_LOCAL,
-                    portNum = packet.decoded?.portnum?.value ?: 0,
+                    portNum = packet.decoded?.portNumValue ?: 0,
                     fromRadio = FromRadio.Builder().also { wb -> wb.packet = packet }.build(),
                 )
             insertMeshLog(packetToSave)

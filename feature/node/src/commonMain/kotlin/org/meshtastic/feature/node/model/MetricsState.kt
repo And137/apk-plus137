@@ -36,6 +36,8 @@ data class MetricsState(
     val node: Node? = null,
     val deviceMetrics: List<Telemetry> = emptyList(),
     val localStats: List<Telemetry> = emptyList(),
+    /** FW+ `Telemetry.local_stats_extended` reports from this node, newest first. */
+    val localStatsExtended: List<Telemetry> = emptyList(),
     val signalMetrics: List<MeshPacket> = emptyList(),
     val powerMetrics: List<Telemetry> = emptyList(),
     val hostMetrics: List<Telemetry> = emptyList(),
@@ -72,7 +74,7 @@ data class MetricsState(
     fun hasTracerouteLogs() =
         tracerouteRequests.isNotEmpty() || tracerouteObserved.isNotEmpty() || tracerouteTracedBy.isNotEmpty()
 
-    fun hasNeighborInfoLogs() = neighborInfoRequests.isNotEmpty()
+    fun hasNeighborInfoLogs() = neighborInfoRequests.isNotEmpty() || neighborInfoResults.isNotEmpty()
 
     fun hasPositionLogs() = positionLogs.isNotEmpty()
 
