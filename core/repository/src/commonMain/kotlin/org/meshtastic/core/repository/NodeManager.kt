@@ -168,6 +168,18 @@ interface NodeManager : NodeIdLookup {
     /** Processes a received node status message. */
     fun handleReceivedNodeStatus(fromNum: Int, s: StatusMessage, session: RadioSessionContext? = null)
 
+    /**
+     * Processes a received FW+ NodeMod broadcast (port NODE_MOD_APP): stores the node's text status and emoji. Blank
+     * values clear the stored ones.
+     */
+    fun handleReceivedFwPlusStatus(fromNum: Int, status: String?, emoji: String?, session: RadioSessionContext? = null)
+
+    /**
+     * Records that [nodeNum] has shown it runs FW+ firmware (see `Node.fwPlusSeen`) and, when given, the FW+ build it
+     * reported ([fwPlusVersion], see `Node.fwPlusVersion`). A no-op when nothing changes.
+     */
+    fun markFwPlus(nodeNum: Int, session: RadioSessionContext? = null, fwPlusVersion: Int? = null)
+
     /** Updates the status string for a node. */
     fun updateNodeStatus(nodeNum: Int, status: String?)
 

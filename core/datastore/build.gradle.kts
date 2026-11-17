@@ -26,6 +26,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.core.common)
+            implementation(projects.core.fwplus)
             implementation(projects.core.model)
             implementation(libs.meshtastic.protobufs)
             api(libs.androidx.datastore)

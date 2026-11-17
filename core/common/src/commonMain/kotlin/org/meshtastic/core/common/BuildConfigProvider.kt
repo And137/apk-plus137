@@ -24,4 +24,8 @@ interface BuildConfigProvider {
     val versionName: String
     val absoluteMinFwVersion: String
     val minFwVersion: String
+
+    /** apk-plus137 build number on top of [versionName] (release tag `v<versionName>-137.<plusBuild>`); 0 if none. */
+    val plusBuild: Int
+        get() = 0
 }

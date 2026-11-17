@@ -17,6 +17,8 @@
 package org.meshtastic.core.model.util
 
 import okio.ByteString.Companion.encodeUtf8
+import org.meshtastic.core.fwplus.FwPlusPortNum
+import org.meshtastic.core.fwplus.portNumValue
 import org.meshtastic.core.model.MeshUser
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.proto.Config
@@ -309,5 +311,17 @@ class MeshDataMapperTest {
 
     private class TestNodeIdLookup : NodeIdLookup {
         override fun toNodeID(nodeNum: Int): String = NodeAddress.numToDefaultId(nodeNum)
+    }
+
+    @Test
+    fun toDataPacket_keepsFwPlusPortsAbsentFromTheUpstreamEnum() {
+        val packet =
+            MeshPacket.Builder()
+                .also { wb -> wb.decoded = Data.Builder().portNumValue(FwPlusPortNum.ON_DEMAND_APP).build() }
+                .build()
+
+        val dataPacket = mapper.toDataPacket(packet)
+
+        assertEquals(FwPlusPortNum.ON_DEMAND_APP, dataPacket?.dataType)
     }
 }

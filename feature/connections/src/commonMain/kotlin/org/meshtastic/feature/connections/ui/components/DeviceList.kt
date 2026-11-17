@@ -31,23 +31,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.DeviceType
@@ -55,6 +53,8 @@ import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.add_network_device_manually
 import org.meshtastic.core.resources.bluetooth
 import org.meshtastic.core.resources.demo_mode
+import org.meshtastic.core.resources.fwplus_show_remembered_devices
+import org.meshtastic.core.resources.fwplus_show_remembered_devices_count
 import org.meshtastic.core.resources.network
 import org.meshtastic.core.resources.no_bluetooth_devices_hint
 import org.meshtastic.core.resources.no_bluetooth_devices_seen
@@ -70,6 +70,7 @@ import org.meshtastic.core.resources.scanning_network
 import org.meshtastic.core.resources.usb
 import org.meshtastic.core.ui.icon.Add
 import org.meshtastic.core.ui.icon.Bluetooth
+import org.meshtastic.core.ui.icon.Check
 import org.meshtastic.core.ui.icon.Close
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Search
@@ -111,29 +112,15 @@ fun DeviceList(
     virtualDevices: List<DeviceListEntry> = emptyList(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     header: (@Composable () -> Unit)? = null,
+    remembered: RememberedDevicesToggle? = null,
+    deviceLabels: DeviceLabels? = null,
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
-    val sheetState =
-        rememberBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-        )
-    val scope = rememberCoroutineScope()
-
-    val hideAndDismiss: () -> Unit = {
-        scope.launch { sheetState.hide() }.invokeOnCompletion { if (!sheetState.isVisible) showAddDialog = false }
-    }
-
-    if (showAddDialog) {
-        AddDeviceDialog(
-            sheetState = sheetState,
-            onHideDialog = hideAndDismiss,
-            onClickAdd = { address, fullAddress ->
-                onAddManualAddress(address, fullAddress)
-                hideAndDismiss()
-            },
-        )
-    }
+    if (showAddDialog) ManualAddressSheet(onAdd = onAddManualAddress, onDismiss = { showAddDialog = false })
+    var labelTarget by remember { mutableStateOf<DeviceListEntry?>(null) }
+    if (deviceLabels != null) labelTarget?.let { LabelEditor(it, deviceLabels, onDone = { labelTarget = null }) }
+    val editLabel: ((DeviceListEntry) -> Unit)? = deviceLabels?.let { { device -> labelTarget = device } }
+    val labels = deviceLabels?.labels.orEmpty()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -150,6 +137,9 @@ fun DeviceList(
                     isBleScanning = isBleScanning,
                     onSelectDevice = onSelectDevice,
                     onToggleBleScan = onToggleBleScan,
+                    remembered = remembered?.let { it.copy(hiddenCount = it.hiddenBle) },
+                    labels = labels,
+                    onEditLabel = editLabel,
                 )
 
             DeviceType.TCP ->
@@ -163,6 +153,9 @@ fun DeviceList(
                     onToggleNetworkScan = onToggleNetworkScan,
                     onAddManually = { showAddDialog = true },
                     onRemoveRecentAddress = onRemoveRecentAddress,
+                    remembered = remembered?.let { it.copy(hiddenCount = it.hiddenTcp) },
+                    labels = labels,
+                    onEditLabel = editLabel,
                 )
 
             DeviceType.USB ->
@@ -211,6 +204,9 @@ private fun LazyListScope.bluetoothSection(
     isBleScanning: Boolean,
     onSelectDevice: (DeviceListEntry) -> Unit,
     onToggleBleScan: () -> Unit,
+    remembered: RememberedDevicesToggle?,
+    labels: Map<String, String>,
+    onEditLabel: ((DeviceListEntry) -> Unit)?,
 ) {
     item(key = "header:ble", contentType = "header") {
         DeviceSectionHeader(
@@ -226,6 +222,7 @@ private fun LazyListScope.bluetoothSection(
             },
         )
     }
+    rememberedToggleItem(remembered, key = "toggle:ble-remembered")
     items(bleDevices, key = { device -> "ble:${device.fullAddress}" }, contentType = { "device" }) { device ->
         DeviceCard(
             device = device,
@@ -233,6 +230,8 @@ private fun LazyListScope.bluetoothSection(
             selectedDevice = selectedDevice,
             onSelect = onSelectDevice,
             modifier = Modifier.animateItem(),
+            label = labels[device.fullAddress],
+            onEditLabel = onEditLabel,
         )
     }
     if (bleDevices.isEmpty()) {
@@ -283,6 +282,9 @@ private fun LazyListScope.networkSection(
     onToggleNetworkScan: () -> Unit,
     onAddManually: () -> Unit,
     onRemoveRecentAddress: (DeviceListEntry) -> Unit,
+    remembered: RememberedDevicesToggle?,
+    labels: Map<String, String>,
+    onEditLabel: ((DeviceListEntry) -> Unit)?,
 ) {
     item(key = "header:tcp-discovered", contentType = "header") {
         DeviceSectionHeader(
@@ -298,6 +300,7 @@ private fun LazyListScope.networkSection(
             },
         )
     }
+    rememberedToggleItem(remembered, key = "toggle:tcp-remembered")
     items(
         discoveredTcpDevices,
         key = { device -> "tcp-discovered:${device.fullAddress}" },
@@ -308,6 +311,8 @@ private fun LazyListScope.networkSection(
             connectionState = connectionState,
             selectedDevice = selectedDevice,
             onSelect = onSelectDevice,
+            label = labels[device.fullAddress],
+            onEditLabel = onEditLabel,
         )
     }
 
@@ -327,6 +332,8 @@ private fun LazyListScope.networkSection(
         selectedDevice = selectedDevice,
         onSelectDevice = onSelectDevice,
         onRemoveRecentAddress = onRemoveRecentAddress,
+        labels = labels,
+        onEditLabel = onEditLabel,
     )
 
     item(key = "action:add-network", contentType = "action") {
@@ -348,6 +355,8 @@ private fun LazyListScope.recentNetworkSection(
     selectedDevice: String,
     onSelectDevice: (DeviceListEntry) -> Unit,
     onRemoveRecentAddress: (DeviceListEntry) -> Unit,
+    labels: Map<String, String>,
+    onEditLabel: ((DeviceListEntry) -> Unit)?,
 ) {
     if (recentTcpDevices.isEmpty()) return
     item(key = "header:tcp-recent", contentType = "header") {
@@ -364,6 +373,47 @@ private fun LazyListScope.recentNetworkSection(
             selectedDevice = selectedDevice,
             onSelect = onSelectDevice,
             onDelete = onRemoveRecentAddress,
+            label = labels[device.fullAddress],
+            onEditLabel = onEditLabel,
+        )
+    }
+}
+
+/** User-given device names ([labels] by full address) and how to change one; null label clears it. */
+data class DeviceLabels(val labels: Map<String, String>, val onSetLabel: (fullAddress: String, label: String?) -> Unit)
+
+/**
+ * The "show remembered devices" switch: [show] lists remembered devices that are out of range right now, [hiddenCount]
+ * says how many the current pane hides while it is off.
+ */
+data class RememberedDevicesToggle(
+    val show: Boolean,
+    val onShowChange: (Boolean) -> Unit,
+    val hiddenBle: Int = 0,
+    val hiddenTcp: Int = 0,
+    val hiddenCount: Int = 0,
+)
+
+private fun LazyListScope.rememberedToggleItem(remembered: RememberedDevicesToggle?, key: String) {
+    remembered ?: return
+    item(key = key, contentType = "toggle") {
+        val label =
+            if (!remembered.show && remembered.hiddenCount > 0) {
+                stringResource(Res.string.fwplus_show_remembered_devices_count, remembered.hiddenCount)
+            } else {
+                stringResource(Res.string.fwplus_show_remembered_devices)
+            }
+        FilterChip(
+            selected = remembered.show,
+            onClick = { remembered.onShowChange(!remembered.show) },
+            label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            leadingIcon =
+            if (remembered.show) {
+                { Icon(MeshtasticIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+            } else {
+                null
+            },
+            modifier = Modifier.padding(horizontal = 8.dp),
         )
     }
 }
@@ -377,6 +427,8 @@ private fun DeviceCard(
     onSelect: (DeviceListEntry) -> Unit,
     modifier: Modifier = Modifier,
     onDelete: ((DeviceListEntry) -> Unit)? = null,
+    label: String? = null,
+    onEditLabel: ((DeviceListEntry) -> Unit)? = null,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -390,6 +442,8 @@ private fun DeviceCard(
             onSelect = { onSelect(device) },
             onDelete = onDelete?.let { delete -> { delete(device) } },
             rssi = (device as? DeviceListEntry.Ble)?.device?.rssi,
+            label = label,
+            onEditLabel = onEditLabel?.let { edit -> { edit(device) } },
         )
     }
 }

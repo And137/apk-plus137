@@ -42,7 +42,10 @@ val LocalDiscoveryMapProvider =
             userLongitude: Double,
             nodes: List<DiscoveryMapNode>,
             modifier: Modifier,
+            // fw+: label of the center marker; null = "You" (the scanner). OnDemand's direct list centers on the
+            // queried node instead.
+            centerLabel: String?,
         ) -> Unit,
         > {
-        { _, _, _, _ -> PlaceholderScreen("Discovery Map") }
+        { _, _, _, _, _ -> PlaceholderScreen("Discovery Map") }
     }

@@ -39,6 +39,13 @@ class FakeFirmwareReleaseRepository :
     override val alphaRelease: Flow<FirmwareRelease?> = _alphaRelease
     override val nightlyRelease: Flow<FirmwareRelease?> = _nightlyRelease
 
+    private val _fwPlusRelease = mutableStateFlow<FirmwareRelease?>(null)
+    override val fwPlusRelease: Flow<FirmwareRelease?> = _fwPlusRelease
+
+    fun setFwPlusRelease(release: FirmwareRelease?) {
+        _fwPlusRelease.value = release
+    }
+
     override suspend fun getManifestTargets(release: FirmwareRelease): Set<String>? = manifestTargets[release.id]
 
     var invalidateCacheCalls: Int = 0

@@ -283,8 +283,8 @@ class MainActivity : AppCompatActivity() {
                     )
                 },
             LocalDiscoveryMapProvider provides
-                { userLat, userLon, nodes, modifier ->
-                    org.meshtastic.app.map.discovery.DiscoveryMap(userLat, userLon, nodes, modifier)
+                { userLat, userLon, nodes, modifier, centerLabel ->
+                    org.meshtastic.app.map.discovery.DiscoveryMap(userLat, userLon, nodes, modifier, centerLabel)
                 },
             LocalMapMainScreenProvider provides
                 { onClickNodeChip, navigateToNodeDetails, waypointId, sitePlannerNodeNum, onOpenMeshHud ->

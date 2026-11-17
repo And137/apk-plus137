@@ -55,6 +55,8 @@ import org.meshtastic.feature.settings.debugging.DebugScreen
 import org.meshtastic.feature.settings.debugging.DebugViewModel
 import org.meshtastic.feature.settings.filter.FilterSettingsScreen
 import org.meshtastic.feature.settings.filter.FilterSettingsViewModel
+import org.meshtastic.feature.settings.fwplus.SnifferScreen
+import org.meshtastic.feature.settings.fwplus.SnifferViewModel
 import org.meshtastic.feature.settings.radio.CleanNodeDatabaseScreen
 import org.meshtastic.feature.settings.radio.CleanNodeDatabaseViewModel
 import org.meshtastic.feature.settings.radio.RadioConfigViewModel
@@ -67,6 +69,9 @@ import org.meshtastic.feature.settings.radio.component.DetectionSensorConfigScre
 import org.meshtastic.feature.settings.radio.component.DeviceConfigScreenCommon
 import org.meshtastic.feature.settings.radio.component.DisplayConfigScreen
 import org.meshtastic.feature.settings.radio.component.ExternalNotificationConfigScreenCommon
+import org.meshtastic.feature.settings.radio.component.FwPlusBroadcastAssistScreen
+import org.meshtastic.feature.settings.radio.component.FwPlusConfigScreen
+import org.meshtastic.feature.settings.radio.component.FwPlusNodeStatusScreen
 import org.meshtastic.feature.settings.radio.component.LoRaConfigScreen
 import org.meshtastic.feature.settings.radio.component.MQTTConfigScreen
 import org.meshtastic.feature.settings.radio.component.MeshBeaconConfigScreen
@@ -87,6 +92,8 @@ import org.meshtastic.feature.settings.radio.component.UserConfigScreen
 import org.meshtastic.feature.settings.radio.setup.RadioSetupScreen
 import org.meshtastic.feature.settings.search.LocalSettingsFieldFocus
 import org.meshtastic.feature.settings.search.SettingsFieldFocus
+import org.meshtastic.feature.settings.update.AppUpdateRow
+import org.meshtastic.feature.settings.update.AppUpdateViewModel
 import kotlin.reflect.KClass
 
 /**
@@ -417,11 +424,25 @@ fun EntryProviderScope<NavKey>.settingsGraph(
 
                 ModuleRoute.MESH_BEACON ->
                     MeshBeaconConfigScreen(viewModel, onBack = dropUnlessResumed { backStack.removeLastOrNull() })
+
+                ModuleRoute.FW_PLUS_BROADCAST_ASSIST ->
+                    FwPlusBroadcastAssistScreen(viewModel, onBack = dropUnlessResumed { backStack.removeLastOrNull() })
+
+                ModuleRoute.FW_PLUS_NODE_STATUS ->
+                    FwPlusNodeStatusScreen(viewModel, onBack = dropUnlessResumed { backStack.removeLastOrNull() })
+
+                ModuleRoute.FW_PLUS_CONFIG ->
+                    FwPlusConfigScreen(viewModel, onBack = dropUnlessResumed { backStack.removeLastOrNull() })
             }
         }
     }
 
     entry<SettingsRoute.TakServer> { TakServerScreen(onBack = dropUnlessResumed { backStack.removeLastOrNull() }) }
+
+    entry<SettingsRoute.FwPlusSniffer> {
+        val viewModel: SnifferViewModel = koinViewModel()
+        SnifferScreen(viewModel = viewModel, onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() })
+    }
 
     entry<SettingsRoute.DebugPanel> {
         val viewModel: DebugViewModel = koinViewModel()
@@ -434,6 +455,7 @@ fun EntryProviderScope<NavKey>.settingsGraph(
             appVersionName = settingsViewModel.appVersionName,
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
             onNavigateToAcknowledgements = dropUnlessResumed { backStack.add(SettingsRoute.Acknowledgements) },
+            appUpdateRow = { AppUpdateRow(viewModel = koinViewModel<AppUpdateViewModel>()) },
         )
     }
 

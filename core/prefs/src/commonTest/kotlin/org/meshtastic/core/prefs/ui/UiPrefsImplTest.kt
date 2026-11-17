@@ -93,6 +93,21 @@ class UiPrefsImplTest {
     }
 
     @Test
+    fun `device labels are stored per address trimmed and cleared by a blank name`() = testScope.runTest {
+        prefs.setDeviceLabel("xAA:BB:CC:DD:EE:FF", "  Roof Hydra ")
+        prefs.setDeviceLabel("t192.168.1.20", "Garage")
+        assertEquals(
+            mapOf("xAA:BB:CC:DD:EE:FF" to "Roof Hydra", "t192.168.1.20" to "Garage"),
+            prefs.deviceLabels.value,
+        )
+
+        prefs.setDeviceLabel("t192.168.1.20", " ")
+        assertEquals(mapOf("xAA:BB:CC:DD:EE:FF" to "Roof Hydra"), prefs.deviceLabels.value)
+        prefs.setDeviceLabel("xAA:BB:CC:DD:EE:FF", null)
+        assertTrue(prefs.deviceLabels.value.isEmpty())
+    }
+
+    @Test
     fun `selected connection transport is null when no legacy transport keys exist`() = testScope.runTest {
         assertNull(prefs.selectedConnectionTransport.value)
     }

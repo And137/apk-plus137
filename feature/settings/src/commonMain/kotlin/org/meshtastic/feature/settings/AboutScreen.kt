@@ -59,7 +59,13 @@ import org.meshtastic.core.resources.app_version
 import org.meshtastic.core.resources.apps
 import org.meshtastic.core.resources.copyright_notice
 import org.meshtastic.core.resources.documentation
-import org.meshtastic.core.resources.github_repository
+import org.meshtastic.core.resources.fwplus_about_description
+import org.meshtastic.core.resources.fwplus_about_firmware
+import org.meshtastic.core.resources.fwplus_about_releases
+import org.meshtastic.core.resources.fwplus_about_source
+import org.meshtastic.core.resources.fwplus_about_title
+import org.meshtastic.core.resources.fwplus_about_upstream
+import org.meshtastic.core.resources.fwplus_modified_notice
 import org.meshtastic.core.resources.license
 import org.meshtastic.core.resources.license_notice
 import org.meshtastic.core.resources.need_hardware
@@ -87,7 +93,12 @@ private val CAROUSEL_IMAGE_WIDTH = 110.dp
 private val CAROUSEL_IMAGE_HEIGHT = 130.dp
 
 private const val HARDWARE_URL = "https://meshtastic.org/#hardware"
-private const val GITHUB_REPO_URL = "https://github.com/meshtastic/Meshtastic-Android"
+
+// apk-plus137: the source link points at the code this build is made from (GPL section 6); upstream gets its own row.
+internal const val GITHUB_REPO_URL = "https://github.com/And137/apk-plus137"
+internal const val RELEASES_URL = "https://github.com/And137/apk-plus137/releases"
+internal const val FIRMWARE_URL = "https://github.com/And137/firmware-plus137"
+internal const val UPSTREAM_REPO_URL = "https://github.com/meshtastic/Meshtastic-Android"
 private const val WEBSITE_URL = "https://meshtastic.org"
 private const val DOCS_URL = "https://meshtastic.org/docs/getting-started"
 private const val LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
@@ -115,6 +126,8 @@ fun AboutScreen(
     onNavigateUp: () -> Unit,
     onNavigateToAcknowledgements: () -> Unit,
     modifier: Modifier = Modifier,
+    /** apk-plus137: the "Check for updates" row, shown under the releases link. */
+    appUpdateRow: (@Composable () -> Unit)? = null,
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -140,12 +153,18 @@ fun AboutScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            MeshPlusSection(
+                onOpenRepoLink = { uriHandler.openUri(GITHUB_REPO_URL) },
+                onOpenReleases = { uriHandler.openUri(RELEASES_URL) },
+                onOpenFirmware = { uriHandler.openUri(FIRMWARE_URL) },
+                appUpdateRow = appUpdateRow,
+            )
             WhatIsMeshtasticSection()
             AppsSection(
                 appVersionName = appVersionName,
                 onNavigateToAcknowledgements = onNavigateToAcknowledgements,
                 onOpenHardwareLink = { uriHandler.openUri(HARDWARE_URL) },
-                onOpenRepoLink = { uriHandler.openUri(GITHUB_REPO_URL) },
+                onOpenUpstream = { uriHandler.openUri(UPSTREAM_REPO_URL) },
             )
             ProjectInformationSection(
                 onOpenWebsite = { uriHandler.openUri(WEBSITE_URL) },
@@ -154,6 +173,46 @@ fun AboutScreen(
             )
             CopyrightFooter()
         }
+    }
+}
+
+/** What this modified build is and where its code, releases and the FW+ firmware live. */
+@Composable
+private fun MeshPlusSection(
+    onOpenRepoLink: () -> Unit,
+    onOpenReleases: () -> Unit,
+    onOpenFirmware: () -> Unit,
+    modifier: Modifier = Modifier,
+    appUpdateRow: (@Composable () -> Unit)? = null,
+) {
+    ExpressiveSection(title = stringResource(Res.string.fwplus_about_title), modifier = modifier) {
+        Text(
+            text = stringResource(Res.string.fwplus_about_description),
+            modifier = Modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        ListItem(
+            text = stringResource(Res.string.fwplus_about_source),
+            leadingIcon = MeshtasticIcons.Code,
+            supportingText = GITHUB_REPO_URL.removePrefix("https://"),
+            trailingIcon = MeshtasticIcons.ChevronRight,
+            onClick = onOpenRepoLink,
+        )
+        ListItem(
+            text = stringResource(Res.string.fwplus_about_releases),
+            leadingIcon = MeshtasticIcons.Memory,
+            trailingIcon = MeshtasticIcons.ChevronRight,
+            onClick = onOpenReleases,
+        )
+        appUpdateRow?.invoke()
+        ListItem(
+            text = stringResource(Res.string.fwplus_about_firmware),
+            leadingIcon = MeshtasticIcons.Language,
+            supportingText = FIRMWARE_URL.removePrefix("https://"),
+            trailingIcon = MeshtasticIcons.ChevronRight,
+            onClick = onOpenFirmware,
+        )
     }
 }
 
@@ -174,16 +233,17 @@ private fun AppsSection(
     appVersionName: String,
     onNavigateToAcknowledgements: () -> Unit,
     onOpenHardwareLink: () -> Unit,
-    onOpenRepoLink: () -> Unit,
+    onOpenUpstream: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ExpressiveSection(title = stringResource(Res.string.apps), modifier = modifier) {
         NeedHardwareRow(onOpenHardwareLink = onOpenHardwareLink)
         ListItem(
-            text = stringResource(Res.string.github_repository),
+            text = stringResource(Res.string.fwplus_about_upstream),
             leadingIcon = MeshtasticIcons.Code,
+            supportingText = UPSTREAM_REPO_URL.removePrefix("https://"),
             trailingIcon = MeshtasticIcons.ChevronRight,
-            onClick = onOpenRepoLink,
+            onClick = onOpenUpstream,
         )
         ListItem(
             text = stringResource(Res.string.app_version),
@@ -246,6 +306,14 @@ private fun CopyrightFooter(modifier: Modifier = Modifier) {
         )
         Text(
             text = stringResource(Res.string.license_notice),
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        // GPL section 5(a) and the Meshtastic trademark policy: say it is modified, by whom, and not endorsed.
+        Text(
+            text = stringResource(Res.string.fwplus_modified_notice),
             modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

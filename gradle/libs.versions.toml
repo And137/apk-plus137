@@ -116,6 +116,8 @@ dbus-java = "5.2.2"
 qrcode-kotlin = "4.5.0"
 takpacket-sdk = "0.10.0"
 meshtastic-protobufs = "2.8.2.44-g8649b79-SNAPSHOT"
+# Must match the wire-runtime the protobufs SDK above is built against (its packages/kmp/build.gradle.kts).
+wire = "7.2.1"
 
 # Gradle Plugins
 ccud = "2.8.0"
@@ -380,6 +382,7 @@ takpacket-sdk-kmp = { module = "org.meshtastic:takpacket-sdk", version.ref = "ta
 
 # Meshtastic Protobufs SDK (Wire-generated KMP models from meshtastic/protobufs)
 meshtastic-protobufs = { module = "org.meshtastic:protobufs", version.ref = "meshtastic-protobufs" }
+wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
 
 
 # SPIKE: unpublished; resolved from mavenLocal via -PuseMavenLocal.
@@ -428,6 +431,8 @@ detekt = { id = "dev.detekt", version.ref = "detekt" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 room = { id = "androidx.room3", version.ref = "room" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+# Generates :core:fwplus models from the FW+ firmware protos.
+wire = { id = "com.squareup.wire", version.ref = "wire" }
 
 # Meshtastic
 meshtastic-android-application = { id = "meshtastic.android.application" }

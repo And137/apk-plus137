@@ -38,6 +38,8 @@ class ModuleBoundaryTest {
             "map-maplibre" to setOf("map", "map-terrain"),
             "coverage" to setOf("map", "map-terrain"),
             "xr" to setOf("node", "map-terrain"),
+            // apk-plus137: a sender's chip in a conversation opens the Nodes tab's node menu (NodeQuickMenu).
+            "messaging" to setOf("node"),
         )
 
     private val sourceFiles = Konsist.scopeFromProject().files.filterNot { it.isNestedAgentWorktree() }

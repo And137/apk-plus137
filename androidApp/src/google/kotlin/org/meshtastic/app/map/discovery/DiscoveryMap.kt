@@ -29,6 +29,13 @@ fun DiscoveryMap(
     userLongitude: Double,
     nodes: List<DiscoveryMapNode>,
     modifier: Modifier = Modifier,
+    centerLabel: String? = null,
 ) {
-    DiscoveryGoogleMap(userLatitude = userLatitude, userLongitude = userLongitude, nodes = nodes, modifier = modifier)
+    DiscoveryGoogleMap(
+        userLatitude = userLatitude,
+        userLongitude = userLongitude,
+        nodes = nodes,
+        modifier = modifier,
+        centerLabel = centerLabel,
+    )
 }

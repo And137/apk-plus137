@@ -157,6 +157,7 @@ private fun rememberTelemetricFeatures(
             requestAction = if (isLocal) null else { n -> NodeMenuAction.TraceRoute(n) },
             logsType = LogsType.TRACEROUTE,
             cooldownTimestamp = lastTracerouteTime,
+            cooldownDuration = TRACEROUTE_COOL_DOWN_TIME_MS,
             isVisible = { !isLocal },
         ),
         TelemetricFeature(
@@ -164,7 +165,11 @@ private fun rememberTelemetricFeatures(
             icon = LogsType.NEIGHBOR_INFO.icon,
             requestAction = { NodeMenuAction.RequestNeighborInfo(it) },
             logsType = LogsType.NEIGHBOR_INFO,
-            isVisible = { it.capabilities.canRequestNeighborInfo },
+            // Upstream hides the request until it is reliable everywhere. Stock firmware answers it on demand and
+            // FW+
+            // firmware too (one reply per 3 minutes), and the log also collects the broadcasts nodes send on their
+            // own, so it is always offered for remote nodes.
+            isVisible = { n -> !isLocal || n.capabilities.canRequestNeighborInfo },
             cooldownTimestamp = lastRequestNeighborsTime,
             cooldownDuration = REQUEST_NEIGHBORS_COOL_DOWN_TIME_MS,
         ),

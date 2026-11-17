@@ -195,6 +195,7 @@ fun MapLibreDiscoveryMap(
     userLongitude: Double,
     nodes: List<DiscoveryMapNode>,
     modifier: Modifier = Modifier,
+    centerLabel: String? = null,
     customBasemaps: @Composable () -> List<Basemap.Raster> = { customRasterBasemaps() },
 ) {
     val scanner = GeoPosition(longitude = userLongitude, latitude = userLatitude)
@@ -215,7 +216,7 @@ fun MapLibreDiscoveryMap(
         rememberSecondaryMapState(basemaps, CameraPosition(center = scanner, zoom = DETAIL_ZOOM)) {
             DiscoveryTopologyLayer(scanner = scanner, nodes = located)
             DiscoveredNodeLayers(nodes = located, onNodeClick = { selectedNode = located.getOrNull(it) })
-            ScannerLayer(scanner = scanner, label = stringResource(Res.string.you))
+            ScannerLayer(scanner = scanner, label = centerLabel ?: stringResource(Res.string.you))
         }
 
     // Frame the scanner together with everything it heard, which is the OSMdroid map's behaviour and the only view

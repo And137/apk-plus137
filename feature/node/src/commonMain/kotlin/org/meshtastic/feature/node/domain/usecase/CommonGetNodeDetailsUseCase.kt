@@ -29,6 +29,7 @@ import org.koin.core.annotation.Single
 import org.meshtastic.core.common.util.LocaleUnitsProvider
 import org.meshtastic.core.common.util.MeasurementSystem
 import org.meshtastic.core.common.util.TemperatureUnit
+import org.meshtastic.core.fwplus.localStatsExtended
 import org.meshtastic.core.model.DeviceHardware
 import org.meshtastic.core.model.DeviceLink
 import org.meshtastic.core.model.FirmwareRelease
@@ -233,6 +234,7 @@ constructor(
                     displayUnits = displayUnits,
                     deviceMetrics = logs.telemetry.filter { it.device_metrics != null },
                     localStats = logs.telemetry.filter { it.local_stats != null },
+                    localStatsExtended = logs.telemetry.filter { it.localStatsExtended != null },
                     powerMetrics = logs.telemetry.filter { it.power_metrics != null },
                     airQualityMetrics = logs.telemetry.filter { it.air_quality_metrics != null },
                     hostMetrics = logs.telemetry.filter { it.host_metrics != null },

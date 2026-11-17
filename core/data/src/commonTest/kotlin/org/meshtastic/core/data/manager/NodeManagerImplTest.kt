@@ -383,6 +383,45 @@ class NodeManagerImplTest {
     }
 
     @Test
+    fun `fw plus status is stored and blank values clear it`() = testScope.runTest {
+        val nodeNum = 4321
+
+        nodeManager.handleReceivedFwPlusStatus(nodeNum, "Lasocice pod Lesznem", "!")
+
+        assertEquals("Lasocice pod Lesznem", nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusStatus)
+        assertEquals("!", nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusEmoji)
+
+        nodeManager.handleReceivedFwPlusStatus(nodeNum, " ", null)
+
+        assertEquals(null, nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusStatus)
+        assertEquals(null, nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusEmoji)
+    }
+
+    @Test
+    fun `markFwPlus records the node as seen running FW+`() = testScope.runTest {
+        val nodeNum = 4322
+
+        nodeManager.markFwPlus(nodeNum)
+        nodeManager.markFwPlus(nodeNum)
+
+        assertEquals(true, nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusSeen)
+    }
+
+    @Test
+    fun `markFwPlus keeps the reported FW+ version until a different one arrives`() = testScope.runTest {
+        val nodeNum = 4323
+
+        nodeManager.markFwPlus(nodeNum, fwPlusVersion = 1372)
+        assertEquals(1372, nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusVersion)
+
+        nodeManager.markFwPlus(nodeNum)
+        assertEquals(1372, nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusVersion)
+
+        nodeManager.markFwPlus(nodeNum, fwPlusVersion = 1373)
+        assertEquals(1373, nodeManager.nodeDBbyNodeNum[nodeNum]?.fwPlusVersion)
+    }
+
+    @Test
     fun `node persistence is suppressed while database writes are disabled`() = testScope.runTest {
         val nodeNum = 1234
         nodeManager.setNodeDbReady(true)

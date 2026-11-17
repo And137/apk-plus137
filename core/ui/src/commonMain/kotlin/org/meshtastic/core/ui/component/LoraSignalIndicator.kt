@@ -70,6 +70,28 @@ const val RSSI_BAD_THRESHOLD = -126
 private const val SNR_FAIR_OFFSET = 5.5f
 private const val SNR_BAD_OFFSET = 7.5f
 
+// fw+ Mesh+ 137: ShortSlow is the FW+ mesh standard, and links there hold to about -12.5 dB SNR, so its scale is
+// shifted down to end there instead of at limit-7.5 (-17.5 dB). Absolute SNR thresholds (dB) of each band's top.
+private const val SHORT_SLOW_GOOD_SNR = -7.5f
+private const val SHORT_SLOW_FAIR_SNR = -11f
+private const val SHORT_SLOW_MIN_SNR = -12.5f
+
+/** Lower bounds of the GOOD (exclusive), FAIR (exclusive) and BAD (inclusive) bands, as dB above the preset's limit. */
+private data class QualityBands(val good: Float, val fair: Float, val bad: Float)
+
+private val DEFAULT_BANDS = QualityBands(good = 0f, fair = -SNR_FAIR_OFFSET, bad = -SNR_BAD_OFFSET)
+
+private fun bandsFor(modemPreset: ModemPreset?): QualityBands = if (modemPreset == ModemPreset.SHORT_SLOW) {
+    val limit = modemPreset.snrLimit
+    QualityBands(
+        good = SHORT_SLOW_GOOD_SNR - limit,
+        fair = SHORT_SLOW_FAIR_SNR - limit,
+        bad = SHORT_SLOW_MIN_SNR - limit,
+    )
+} else {
+    DEFAULT_BANDS
+}
+
 @Stable
 enum class Quality(
     @Stable val nameRes: StringResource,
@@ -160,7 +182,8 @@ fun Rssi(rssi: Int?, modifier: Modifier = Modifier, label: String = stringResour
  * rated against the same preset-relative bands as SNR and the *worse* of the two tiers wins — a strong SNR reading over
  * a noisy channel is still a bad link. With either missing, the rating is SNR-only, unchanged from #5446.
  *
- * A null/unknown [modemPreset] falls back to the LongFast default limit.
+ * A null/unknown [modemPreset] falls back to the LongFast default limit. ShortSlow (the FW+ standard) uses its own
+ * bands ending at -12.5 dB: GOOD above -7.5, FAIR above -11, BAD down to -12.5, NONE below.
  *
  * Without a noise floor, fixed RSSI thresholds cannot account for the preset's bandwidth, so rating stays SNR-only.
  */
@@ -173,13 +196,13 @@ fun determineSignalQuality(snr: Float, modemPreset: ModemPreset?, rssi: Int? = n
         } else {
             snrMargin
         }
-    return qualityForMargin(margin)
+    return qualityForMargin(margin, bandsFor(modemPreset))
 }
 
 /** Classifies a demodulation-floor margin (dB above [ModemPreset.snrLimit]) into a [Quality] band. */
-private fun qualityForMargin(margin: Float): Quality = when {
-    margin > 0f -> Quality.GOOD
-    margin > -SNR_FAIR_OFFSET -> Quality.FAIR
-    margin >= -SNR_BAD_OFFSET -> Quality.BAD
+private fun qualityForMargin(margin: Float, bands: QualityBands): Quality = when {
+    margin > bands.good -> Quality.GOOD
+    margin > bands.fair -> Quality.FAIR
+    margin >= bands.bad -> Quality.BAD
     else -> Quality.NONE
 }

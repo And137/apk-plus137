@@ -32,6 +32,9 @@ interface FirmwareReleaseRepository {
      */
     val nightlyRelease: Flow<FirmwareRelease?>
 
+    /** apk-plus137: the latest FW+ release (And137/firmware-plus137), or null when none could be fetched. */
+    val fwPlusRelease: Flow<FirmwareRelease?>
+
     /**
      * Fetches the authoritative firmware board targets from a release's manifest URL. Returns null when the manifest
      * cannot be retrieved or parsed, so callers can fail closed rather than offering an incompatible firmware update.

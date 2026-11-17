@@ -22,6 +22,7 @@ import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.FirmwareReleaseManifest
 import org.meshtastic.core.model.NetworkFirmwareNightly
 import org.meshtastic.core.model.NetworkFirmwareReleases
+import org.meshtastic.core.model.NetworkFwPlusRelease
 import org.meshtastic.core.network.service.ApiService
 
 @Single
@@ -38,4 +39,8 @@ class FirmwareReleaseRemoteDataSource(
     /** The nightly preview pointer from the nightly host, or null when no nightly is published. */
     suspend fun getNightlyFirmware(): NetworkFirmwareNightly? =
         withContext(dispatchers.io) { apiService.getNightlyFirmware() }
+
+    /** apk-plus137: the latest FW+ release from GitHub, or null when there is none. */
+    suspend fun getFwPlusFirmware(): NetworkFwPlusRelease? =
+        withContext(dispatchers.io) { apiService.getFwPlusLatestRelease() }
 }

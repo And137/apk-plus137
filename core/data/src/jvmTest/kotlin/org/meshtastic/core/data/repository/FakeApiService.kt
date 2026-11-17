@@ -25,6 +25,7 @@ import org.meshtastic.core.model.NetworkDeviceHardware
 import org.meshtastic.core.model.NetworkDeviceLinksResponse
 import org.meshtastic.core.model.NetworkFirmwareNightly
 import org.meshtastic.core.model.NetworkFirmwareReleases
+import org.meshtastic.core.model.NetworkFwPlusRelease
 import org.meshtastic.core.network.service.ApiService
 
 /**
@@ -93,6 +94,10 @@ internal class FakeApiService(
         nightlyFirmwareCalls++
         return nightlyFirmware()
     }
+
+    var fwPlusRelease: () -> NetworkFwPlusRelease? = { null }
+
+    override suspend fun getFwPlusLatestRelease(): NetworkFwPlusRelease? = fwPlusRelease()
 
     override suspend fun getEventFirmware(): EventFirmwareResponse {
         eventFirmwareCalls++

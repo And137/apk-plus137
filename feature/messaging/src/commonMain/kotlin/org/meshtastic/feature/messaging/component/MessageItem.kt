@@ -316,10 +316,24 @@ fun MessageItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                NodeChip(node = node, onClick = onClickChip, modifier = Modifier.heightIn(min = 28.dp))
+                val senderMenu = LocalSenderMenu.current
+                var senderMenuOpen by remember { mutableStateOf(false) }
+                val onSenderClick: (Node) -> Unit =
+                    if (senderMenu != null) {
+                        { senderMenuOpen = true }
+                    } else {
+                        onClickChip
+                    }
+                Box {
+                    NodeChip(node = node, onClick = onSenderClick, modifier = Modifier.heightIn(min = 28.dp))
+                    senderMenu?.invoke(node, senderMenuOpen) { senderMenuOpen = false }
+                }
                 Text(
                     text = node.effectiveLongName,
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier =
+                    Modifier.weight(1f, fill = false).clickable(enabled = senderMenu != null) {
+                        senderMenuOpen = true
+                    },
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
                     style = MaterialTheme.typography.labelMedium,
@@ -359,6 +373,10 @@ fun MessageItem(
                 onMoreActions = {
                     onQuickReactionsOpenChange(false)
                     activeSheet = ActiveSheet.Actions
+                },
+                onCopy = {
+                    onQuickReactionsOpenChange(false)
+                    coroutineScope.launch { clipboardManager.setClipEntry(createClipEntry(bodyText, "message")) }
                 },
             )
         }
