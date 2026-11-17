@@ -31,6 +31,7 @@ kotlin {
         commonMain.dependencies {
             api(libs.meshtastic.protobufs)
             api(projects.core.common)
+            implementation(projects.core.fwplus)
             api(projects.core.resources)
 
             api(libs.kotlinx.coroutines.core)

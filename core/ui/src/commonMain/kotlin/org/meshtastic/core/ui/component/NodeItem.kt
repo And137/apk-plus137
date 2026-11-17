@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -230,6 +231,8 @@ fun NodeItem(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 
             NodeItemFooter(thatNode = thatNode, contentColor = contentColor, deviceImageUrl = deviceImageUrl)
+
+            thatNode.fwPlusStatusLine?.let { status -> FwPlusStatusLine(status = status, contentColor = contentColor) }
         }
     }
 }
@@ -571,6 +574,21 @@ private fun NodeItemHeader(
             isUnknownUser = thatNode.isUnknownUser,
         )
     }
+}
+
+/** The FW+ NodeMod status, right-aligned in italics under the footer as FW+ clients show it. */
+@Composable
+private fun FwPlusStatusLine(status: String, contentColor: Color) {
+    Text(
+        text = status,
+        modifier = Modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.bodySmall,
+        fontStyle = FontStyle.Italic,
+        textAlign = TextAlign.End,
+        color = contentColor,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable

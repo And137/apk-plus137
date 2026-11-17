@@ -207,7 +207,8 @@ compose.desktop {
         }
 
         nativeDistributions {
-            packageName = "Meshtastic Desktop"
+            // apk-plus137: own name, vendor and upgrade UUID so it never replaces an official Meshtastic install.
+            packageName = "Mesh Plus 137"
 
             // Ensure critical JVM modules are included in the custom JRE bundled with the app.
             // jdeps might miss some of these if they are loaded via reflection or JNI.
@@ -280,13 +281,13 @@ compose.desktop {
             }
             windows {
                 iconFile.set(project.file("src/main/resources/icon.ico"))
-                menuGroup = "Meshtastic"
+                menuGroup = "Mesh+ 137"
                 shortcut = true
                 menu = true
                 dirChooser = true
                 // Stable UUID ensures MSI upgrades replace the previous installation
                 // rather than installing side-by-side. NEVER change this value.
-                upgradeUuid = "4974EA87-98AA-470E-B590-0BD5CF9FAE8E"
+                upgradeUuid = "AD46DAA6-63CB-45E2-88A4-79B767F4D263"
             }
             linux {
                 iconFile.set(project.file("src/main/resources/icon.png"))
@@ -310,8 +311,8 @@ compose.desktop {
             val sanitizedVersion = Regex("^\\d+\\.\\d+\\.\\d+").find(versionInfo.versionName)?.value ?: "1.0.0"
             packageVersion = sanitizedVersion
 
-            description = "Meshtastic Desktop Application"
-            vendor = "Meshtastic LLC"
+            description = "Mesh+ 137 desktop client (apk-plus137, a modified Meshtastic-Android)"
+            vendor = "And137"
         }
     }
 }

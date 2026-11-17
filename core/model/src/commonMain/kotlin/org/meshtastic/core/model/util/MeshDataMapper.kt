@@ -19,6 +19,7 @@
 package org.meshtastic.core.model.util
 
 import okio.ByteString.Companion.toByteString
+import org.meshtastic.core.fwplus.portNumValue
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.proto.MeshPacket
@@ -38,7 +39,8 @@ open class MeshDataMapper(private val nodeIdLookup: NodeIdLookup) {
             to = nodeIdLookup.toNodeID(packet.to),
             time = (packet.rxTimeOrNull() ?: 0) * 1000L,
             id = packet.id,
-            dataType = decoded.portnum.value,
+            // portNumValue, not portnum.value: FW+ ports are absent from the upstream enum and would read as 0.
+            dataType = decoded.portNumValue,
             bytes = decoded.payload.toByteArray().toByteString(),
             hopLimit = packet.hop_limit,
             channel = if (packet.pki_encrypted == true) NodeAddress.PKC_CHANNEL_INDEX else packet.channel,

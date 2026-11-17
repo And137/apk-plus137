@@ -16,6 +16,21 @@ The Meshtastic client for Android and Compose Desktop — an app for communicati
 
 If you have questions or feedback please [Join our discussion forum](https://github.com/orgs/meshtastic/discussions) or the [Discord Group](https://discord.gg/meshtastic). We would love to hear from you!
 
+## apk-plus137 (modified version)
+
+This repository, **apk-plus137**, is a modified version of Meshtastic-Android, changed by And137 starting 2026-11-17.
+It adds client support for the FW+ firmware line [firmware-plus137](https://github.com/And137/firmware-plus137):
+the FW+ node status (NodeMod), FW+ module configuration (FW+ Configuration, Broadcast Assist, Wi-Fi/BT power),
+OnDemand remote node statistics, extended local stats, a packet sniffer, a per-node packet counter and FW+ node
+detection. FW+ protocol models live in `core/fwplus`. The changes are kept as one commit on top of upstream and
+rebased onto it from time to time.
+
+Builds are rebranded as **Mesh+ 137** (`io.github.and137.meshplus137`, own "M+" icon and signing key), so they
+install next to the official Meshtastic app. Releases: [GitHub Releases](https://github.com/And137/apk-plus137/releases).
+
+It is not affiliated with or endorsed by the Meshtastic project. Meshtastic® is a registered trademark of
+Meshtastic LLC. It remains licensed under GPL-3.0-or-later, like upstream.
+
 ## Features
 
 Highlights of the 2.8 line:

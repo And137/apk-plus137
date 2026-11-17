@@ -30,6 +30,7 @@ import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.common.util.handledLaunch
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.nowSeconds
+import org.meshtastic.core.fwplus.fwPlusModuleConfigRequest
 import org.meshtastic.core.model.HamName
 import org.meshtastic.core.model.Position
 import org.meshtastic.core.repository.AdminController
@@ -206,8 +207,16 @@ internal class AdminControllerImpl(
 
     override suspend fun getModuleConfig(destNum: Int, moduleConfigType: Int, packetId: Int) {
         commandSender.sendAdmin(destNum, packetId, wantResponse = true) {
+            val known = AdminMessage.ModuleConfigType.fromValue(moduleConfigType)
             AdminMessage.Builder()
-                .also { wb -> wb.get_module_config_request = AdminMessage.ModuleConfigType.fromValue(moduleConfigType) }
+                .also { wb ->
+                    // FW+ module config types (FwPlusModuleConfigType) are absent from the upstream enum.
+                    if (known != null) {
+                        wb.get_module_config_request = known
+                    } else {
+                        wb.fwPlusModuleConfigRequest(moduleConfigType)
+                    }
+                }
                 .build()
         }
     }

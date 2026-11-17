@@ -29,6 +29,7 @@ import org.meshtastic.core.resources.app_settings
 import org.meshtastic.core.resources.debug_panel
 import org.meshtastic.core.resources.device_links
 import org.meshtastic.core.resources.filter_settings
+import org.meshtastic.core.resources.fwplus_sniffer
 import org.meshtastic.core.resources.node_layout_section_title
 import org.meshtastic.core.resources.wifi_devices
 import org.meshtastic.feature.settings.navigation.ConfigRoute
@@ -155,6 +156,7 @@ object SettingsSearchCatalog {
             Res.string.filter_settings to SettingsRoute.FilterSettings,
             Res.string.device_links to SettingsRoute.DeviceLinks,
             Res.string.debug_panel to SettingsRoute.DebugPanel,
+            Res.string.fwplus_sniffer to SettingsRoute.FwPlusSniffer,
             Res.string.about to SettingsRoute.About,
             Res.string.acknowledgements to SettingsRoute.Acknowledgements,
         )
