@@ -111,7 +111,6 @@ import org.meshtastic.core.resources.open_bluetooth_settings
 import org.meshtastic.core.resources.open_location_settings
 import org.meshtastic.core.resources.open_settings
 import org.meshtastic.core.resources.open_wifi_settings
-import org.meshtastic.core.resources.radio_setup_title
 import org.meshtastic.core.resources.rssi
 import org.meshtastic.core.resources.set_your_region
 import org.meshtastic.core.resources.transmit_disabled
@@ -158,9 +157,11 @@ import org.meshtastic.feature.connections.model.DeviceListEntry
 import org.meshtastic.feature.connections.ui.components.ConnectingDeviceInfo
 import org.meshtastic.feature.connections.ui.components.CurrentlyConnectedInfo
 import org.meshtastic.feature.connections.ui.components.CurrentlyConnectedText
+import org.meshtastic.feature.connections.ui.components.DeviceLabels
 import org.meshtastic.feature.connections.ui.components.DeviceList
 import org.meshtastic.feature.connections.ui.components.EventFirmwareCard
 import org.meshtastic.feature.connections.ui.components.LiveUpdateSection
+import org.meshtastic.feature.connections.ui.components.RememberedDevicesToggle
 import org.meshtastic.feature.connections.ui.components.TransportSelector
 import org.meshtastic.feature.connections.ui.components.loraSummary
 import org.meshtastic.proto.Config
@@ -229,18 +230,22 @@ internal fun ConfigurationWarningCards(
         )
 
     // Emitted only when there is a card to show: an empty column would still take a gap in the caller's spacing.
-    if (!showWarnings) return
+    // A configured radio (region set) gets no setup card here; the guided setup stays reachable from Settings.
+    val txCard = txDisabled && !regionUnset
+    if (!showWarnings || !(regionUnset || txCard)) return
     Column(verticalArrangement = Arrangement.spacedBy(HeaderItemSpacing)) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            ListItem(
-                leadingIcon = MeshtasticIcons.Language,
-                text = stringResource(if (regionUnset) Res.string.set_your_region else Res.string.radio_setup_title),
-                onClick = { onConfigNavigate(SettingsRoute.RadioSetup(radioSetupAddress)) },
-            )
+        if (regionUnset) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    leadingIcon = MeshtasticIcons.Language,
+                    text = stringResource(Res.string.set_your_region),
+                    onClick = { onConfigNavigate(SettingsRoute.RadioSetup(radioSetupAddress)) },
+                )
+            }
         }
 
         // An unset region already disables transmit and has its own card, so do not blame one root cause twice.
-        if (txDisabled && !regionUnset) {
+        if (txCard) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 ListItem(
                     leadingIcon = MeshtasticIcons.CellTower,
@@ -285,6 +290,10 @@ fun ConnectionsScreen(
     val bleDevices by scanModel.bleDevicesForUi.collectAsStateWithLifecycle()
     val discoveredTcpDevices by scanModel.discoveredTcpDevicesForUi.collectAsStateWithLifecycle()
     val recentTcpDevices by scanModel.recentTcpDevicesForUi.collectAsStateWithLifecycle()
+    val showRememberedDevices by scanModel.showRememberedDevices.collectAsStateWithLifecycle()
+    val deviceLabels by scanModel.deviceLabels.collectAsStateWithLifecycle()
+    val hiddenRememberedBle by scanModel.hiddenRememberedBleCount.collectAsStateWithLifecycle()
+    val hiddenRememberedTcp by scanModel.hiddenRememberedTcpCount.collectAsStateWithLifecycle()
     val usbDevices by scanModel.usbDevicesForUi.collectAsStateWithLifecycle()
     val isBleScanning by scanModel.isBleScanning.collectAsStateWithLifecycle()
     val isNetworkScanning by scanModel.isNetworkScanning.collectAsStateWithLifecycle()
@@ -555,6 +564,7 @@ fun ConnectionsScreen(
                                     selectedDevice = selectedDevice,
                                     bleDevices = bleDevices,
                                     text = currentlyConnectedText,
+                                    deviceLabel = deviceLabels[selectedDevice],
                                     onNavigateToNodeDetails = onNavigateToNodeDetails,
                                     onClickDisconnect = { scanModel.disconnect() },
                                     onClickLora = { onConfigNavigate(SettingsRoute.LoRa) },
@@ -564,6 +574,7 @@ fun ConnectionsScreen(
                                 ConnectingDeviceContent(
                                     selectedDevice = selectedDevice,
                                     persistedDeviceName = persistedDeviceName,
+                                    deviceLabel = deviceLabels[selectedDevice],
                                     bleDevices = bleDevices,
                                     discoveredTcpDevices = discoveredTcpDevices,
                                     recentTcpDevices = recentTcpDevices,
@@ -764,6 +775,14 @@ fun ConnectionsScreen(
                     modifier = listModifier,
                     contentPadding = listPadding,
                     header = listHeader,
+                    remembered =
+                    RememberedDevicesToggle(
+                        show = showRememberedDevices,
+                        onShowChange = scanModel::setShowRememberedDevices,
+                        hiddenBle = hiddenRememberedBle,
+                        hiddenTcp = hiddenRememberedTcp,
+                    ),
+                    deviceLabels = DeviceLabels(labels = deviceLabels, onSetLabel = scanModel::setDeviceLabel),
                     connectionState = connectionState,
                     selectedDevice = selectedDevice,
                     bleDevices = bleDevices,
@@ -976,6 +995,7 @@ private fun ConnectedDeviceContent(
     selectedDevice: String,
     bleDevices: List<DeviceListEntry>,
     text: CurrentlyConnectedText,
+    deviceLabel: String?,
     onNavigateToNodeDetails: (Int) -> Unit,
     onClickDisconnect: () -> Unit,
     onClickLora: () -> Unit,
@@ -984,6 +1004,7 @@ private fun ConnectedDeviceContent(
         CurrentlyConnectedInfo(
             node = node,
             text = text,
+            deviceLabel = deviceLabel,
             onClickLora = onClickLora,
             bleDevice = bleDevices.find { it.fullAddress == selectedDevice } as DeviceListEntry.Ble?,
             onNavigateToNodeDetails = onNavigateToNodeDetails,
@@ -997,6 +1018,7 @@ private fun ConnectedDeviceContent(
 private fun ConnectingDeviceContent(
     selectedDevice: String,
     persistedDeviceName: String?,
+    deviceLabel: String?,
     bleDevices: List<DeviceListEntry>,
     discoveredTcpDevices: List<DeviceListEntry>,
     recentTcpDevices: List<DeviceListEntry>,
@@ -1015,7 +1037,8 @@ private fun ConnectingDeviceContent(
 
     // Use the entry name if found in scan lists, otherwise fall back to the persisted name
     // from the last successful selection, and only show "Unknown Device" as a last resort.
-    val name = selectedEntry?.name ?: persistedDeviceName ?: stringResource(Res.string.unknown_device)
+    // A name the user gave the device comes first (it replaces the advertised one, as in the lists).
+    val name = deviceLabel ?: selectedEntry?.name ?: persistedDeviceName ?: stringResource(Res.string.unknown_device)
     val address = selectedEntry?.address ?: selectedDevice
 
     ConnectingDeviceInfo(

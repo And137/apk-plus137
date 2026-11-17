@@ -1,21 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- apk-plus137 launcher foreground: a black "M+" inside the adaptive-icon safe zone (21..87 of 108). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <group android:scaleX="2.4944882"
-      android:scaleY="2.4944882"
-      android:translateX="18.36"
-      android:translateY="18.36">
     <path
-        android:pathData="m17.5564,11.8482 l-5.208,7.6376 -1.5217,-1.0377 5.9674,-8.7512c0.1714,-0.2513 0.4558,-0.4019 0.76,-0.4022 0.3042,-0.0003 0.5889,0.1497 0.7608,0.4008l5.9811,8.7374 -1.5199,1.0404z"
-        android:strokeLineJoin="round"
-        android:fillColor="#2c2d3c"
-        android:fillType="evenOdd"/>
+        android:fillColor="#000000"
+        android:pathData="M28,70 L28,38 L34,38 L44,55 L54,38 L60,38 L60,70 L54,70 L54,50 L44,66 L34,50 L34,70 Z" />
     <path
-        android:pathData="m5.854,19.4956 l6.3707,-9.3423 -1.5749,-1.0739 -6.3707,9.3423z"
-        android:strokeLineJoin="round"
-        android:fillColor="#2c2d3c"
-        android:fillType="evenOdd"/>
-  </group>
+        android:fillColor="#000000"
+        android:pathData="M64,51 L69,51 L69,46 L75,46 L75,51 L80,51 L80,57 L75,57 L75,62 L69,62 L69,57 L64,57 Z" />
 </vector>

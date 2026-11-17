@@ -73,6 +73,9 @@ fun Node.toEntity() = NodeEntity(
     powerChannelLabels = powerChannelLabels,
     manuallyVerified = manuallyVerified,
     nodeStatus = nodeStatus,
+    fwPlusStatus = fwPlusStatus,
+    fwPlusEmoji = fwPlusEmoji,
+    fwPlusSeen = fwPlusSeen,
     lastTransport = lastTransport,
     signsPackets = signsPackets,
     heardOnCurrentLora = heardOnCurrentLora,
@@ -136,6 +139,12 @@ data class NodeEntity(
     @ColumnInfo(name = "manually_verified", defaultValue = "0")
     var manuallyVerified: Boolean = false, // ONLY set true when scanned/imported manually
     @ColumnInfo(name = "node_status") var nodeStatus: String? = null,
+    /** FW+ NodeMod text status (port NODE_MOD_APP). */
+    @ColumnInfo(name = "fwplus_status") var fwPlusStatus: String? = null,
+    /** FW+ NodeMod emoji. */
+    @ColumnInfo(name = "fwplus_emoji") var fwPlusEmoji: String? = null,
+    /** True once the node has shown it runs FW+ firmware. */
+    @ColumnInfo(name = "fwplus_seen", defaultValue = "0") var fwPlusSeen: Boolean = false,
     /** The transport mechanism this node was last heard over (see [MeshPacket.TransportMechanism]). */
     @ColumnInfo(name = "last_transport", defaultValue = "0") var lastTransport: Int = 0,
     /** True when this node signs its broadcasts via XEdDSA (NodeInfo.has_xeddsa_signed). */
@@ -247,6 +256,9 @@ data class NodeEntity(
         powerChannelLabels = powerChannelLabels,
         manuallyVerified = manuallyVerified,
         nodeStatus = nodeStatus,
+        fwPlusStatus = fwPlusStatus,
+        fwPlusEmoji = fwPlusEmoji,
+        fwPlusSeen = fwPlusSeen,
         lastTransport = lastTransport,
         signsPackets = signsPackets,
         heardOnCurrentLora = heardOnCurrentLora,

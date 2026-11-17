@@ -52,6 +52,7 @@ import org.meshtastic.core.resources.discovery_local_mesh
 import org.meshtastic.core.resources.export_configuration
 import org.meshtastic.core.resources.factory_reset
 import org.meshtastic.core.resources.firmware_update_title
+import org.meshtastic.core.resources.fwplus_sniffer
 import org.meshtastic.core.resources.ic_power_settings_new
 import org.meshtastic.core.resources.ic_restart_alt
 import org.meshtastic.core.resources.ic_restore
@@ -305,6 +306,13 @@ private fun AdvancedSection(isManaged: Boolean, isOtaCapable: Boolean, enabled: 
             text = stringResource(Res.string.debug_panel),
             leadingIcon = MeshtasticIcons.BugReport,
             onClick = { onNavigate(SettingsRoute.DebugPanel) },
+        )
+
+        // Read-only view of the packet log, so like the debug panel it stays reachable with no radio attached.
+        ListItem(
+            text = stringResource(Res.string.fwplus_sniffer),
+            leadingIcon = MeshtasticIcons.BugReport,
+            onClick = { onNavigate(SettingsRoute.FwPlusSniffer) },
         )
     }
 }

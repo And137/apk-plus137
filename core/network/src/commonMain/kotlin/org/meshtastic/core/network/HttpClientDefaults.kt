@@ -47,6 +47,10 @@ object HttpClientDefaults {
      */
     const val API_BASE_URL = "https://api.meshtastic.org/"
 
+    /** apk-plus137: FW+ firmware releases (And137/firmware-plus137) — latest release API and asset download base. */
+    const val FWPLUS_LATEST_RELEASE_URL = "https://api.github.com/repos/And137/firmware-plus137/releases/latest"
+    const val FWPLUS_RELEASE_BASE_URL = "https://github.com/And137/firmware-plus137/releases/download"
+
     /**
      * Base URL for the nightly firmware channel. Absolute, and not routed through [API_BASE_URL] — the nightly build is
      * published outside the API, flat at this host's root: `index.json` alongside every per-target artifact.

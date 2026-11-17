@@ -65,6 +65,10 @@ open class FirmwareReleaseRepositoryImpl(
     private val nightlyRefresher =
         SingleFlightRefresher(dispatchers.io, "FirmwareReleaseRepository.nightly") { fetchAndPersistNightly() }
 
+    /** apk-plus137: FW+ releases come from GitHub (And137/firmware-plus137), on their own flight. */
+    private val fwPlusRefresher =
+        SingleFlightRefresher(dispatchers.io, "FirmwareReleaseRepository.fwplus") { fetchAndPersistFwPlus() }
+
     /** Serializes target-manifest downloads and preserves successful results for the selected release URL. */
     private val manifestMutex = Mutex()
     private val manifestTargetsByUrl = mutableMapOf<String, Set<String>>()
@@ -88,6 +92,8 @@ open class FirmwareReleaseRepositoryImpl(
     override val alphaRelease: Flow<FirmwareRelease?> = getLatestFirmware(FirmwareReleaseType.ALPHA)
 
     override val nightlyRelease: Flow<FirmwareRelease?> = getLatestFirmware(FirmwareReleaseType.NIGHTLY)
+
+    override val fwPlusRelease: Flow<FirmwareRelease?> = getLatestFirmware(FirmwareReleaseType.FWPLUS)
 
     override suspend fun getManifestTargets(release: FirmwareRelease): Set<String>? {
         val manifestUrl = release.zipUrl.takeIf { it.isNotBlank() } ?: return null
@@ -117,10 +123,10 @@ open class FirmwareReleaseRepositoryImpl(
         // Nightly lives on its own host, not in the API's release list, so it refreshes on its own
         // path — regular (locked) users never hit the nightly URL because only unlocked UI collects that flow.
         fetch = {
-            if (releaseType == FirmwareReleaseType.NIGHTLY) {
-                nightlyRefresher.refresh()
-            } else {
-                releaseRefresher.refresh()
+            when (releaseType) {
+                FirmwareReleaseType.NIGHTLY -> nightlyRefresher.refresh()
+                FirmwareReleaseType.FWPLUS -> fwPlusRefresher.refresh()
+                else -> releaseRefresher.refresh()
             }
         },
         context = dispatchers.default,
@@ -224,6 +230,16 @@ open class FirmwareReleaseRepositoryImpl(
         val nightly = remoteDataSource.getNightlyFirmware()?.asFirmwareRelease()
         writeMutex.withLock {
             localDataSource.replaceFirmwareReleases(mapOf(FirmwareReleaseType.NIGHTLY to listOfNotNull(nightly)))
+        }
+    }
+
+    private suspend fun fetchAndPersistFwPlus() {
+        Logger.d { "FirmwareReleaseRepository: fetching the FW+ release" }
+        // GitHub allows 60 unauthenticated requests an hour; the hourly staleness keeps us far below that. Transport
+        // errors throw before the write and keep the cached release.
+        val fwPlus = remoteDataSource.getFwPlusFirmware()?.asFirmwareRelease()
+        writeMutex.withLock {
+            localDataSource.replaceFirmwareReleases(mapOf(FirmwareReleaseType.FWPLUS to listOfNotNull(fwPlus)))
         }
     }
 

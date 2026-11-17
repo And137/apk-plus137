@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 Meshtastic LLC
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<!-- FW+ (Mesh+ 137) Polish strings, kept out of the Crowdin-managed strings.xml so translation syncs never drop them. -->
+<resources>
+    <string name="fwplus_show_remembered_devices">Pokaż zapamiętane</string>
+    <string name="fwplus_show_remembered_devices_count">Pokaż zapamiętane (%1$d)</string>
+    <string name="fwplus_try_again">Spróbuj ponownie</string>
+    <string name="fwplus_device_label_edit">Zmień nazwę urządzenia</string>
+    <string name="fwplus_device_label_title">Nazwa urządzenia</string>
+    <string name="fwplus_device_label_hint">Wyświetlana zamiast nazwy z rozgłoszenia, tylko w tym telefonie. Zostaw puste, aby wrócić do nazwy z rozgłoszenia.</string>
+    <string name="fwplus_about_title">Czym jest Mesh+ 137?</string>
+    <string name="fwplus_about_description">Mesh+ 137 to zmodyfikowana aplikacja Meshtastic-Android dla routerowego firmware FW+ (firmware-plus137). Działa z każdym nodem Meshtastic® i dodaje funkcje FW+: status noda, statystyki na żądanie, ustawienia modułów FW+ i sniffer.</string>
+    <string name="fwplus_about_source">Kod źródłowy (Mesh+ 137)</string>
+    <string name="fwplus_about_releases">Wydania i aktualizacje</string>
+    <string name="fwplus_about_firmware">Firmware FW+</string>
+    <string name="fwplus_about_upstream">Projekt źródłowy: Meshtastic-Android</string>
+    <string name="fwplus_modified_notice">Mesh+ 137 to zmodyfikowana wersja Meshtastic-Android, zmieniana przez And137 od 2026 r. Niepowiązana z projektem Meshtastic ani przez niego nie popierana. Meshtastic® jest zarejestrowanym znakiem towarowym Meshtastic LLC.</string>
+    <string name="fwplus_update_stock_warning">Ten node ma firmware FW+. Wydanie stock Meshtastic je zastąpi i node straci funkcje FW+ (status FW+, statystyki na żądanie, ustawienia FW+). Wybierz FW+, aby zostać przy FW+.</string>
+</resources>

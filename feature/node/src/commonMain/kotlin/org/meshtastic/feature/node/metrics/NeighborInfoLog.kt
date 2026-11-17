@@ -38,9 +38,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.DateFormatter
+import org.meshtastic.core.model.MeshLog
+import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.effectiveLongName
 import org.meshtastic.core.model.getNeighborInfoResponse
+import org.meshtastic.core.model.neighborInfo
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.fwplus_ni_broadcast
+import org.meshtastic.core.resources.fwplus_ni_received
 import org.meshtastic.core.resources.neighbor_info
 import org.meshtastic.core.resources.routing_error_no_response
 import org.meshtastic.core.resources.success
@@ -56,6 +61,7 @@ import org.meshtastic.core.ui.theme.StatusColors.StatusYellow
 import org.meshtastic.core.ui.util.LocalModemPreset
 import org.meshtastic.core.ui.util.annotateNeighborInfo
 import org.meshtastic.feature.node.component.CooldownIconButton
+import org.meshtastic.feature.node.model.MetricsState
 
 @OptIn(ExperimentalFoundationApi::class)
 @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -99,20 +105,31 @@ fun NeighborInfoLogScreen(modifier: Modifier = Modifier, viewModel: MetricsViewM
             modifier = modifier.fillMaxSize().padding(innerPadding),
             contentPadding = PaddingValues(horizontal = 16.dp),
         ) {
-            items(state.neighborInfoRequests, key = { it.uuid }) { log ->
+            val entries =
+                state.neighborInfoRequests.map { it to false } + unsolicitedNeighborInfo(state).map { it to true }
+            items(entries.sortedByDescending { it.first.received_date }, key = { it.first.uuid }) { (log, received) ->
                 val result =
-                    remember(state.neighborInfoResults, log.fromRadio.packet?.id) {
-                        state.neighborInfoResults.find {
-                            it.fromRadio.packet?.decoded?.request_id == log.fromRadio.packet?.id
+                    if (received) {
+                        log
+                    } else {
+                        remember(state.neighborInfoResults, log.fromRadio.packet?.id) {
+                            state.neighborInfoResults.find {
+                                it.fromRadio.packet?.decoded?.request_id == log.fromRadio.packet?.id
+                            }
                         }
                     }
 
                 val time = DateFormatter.formatDateTime(log.received_date)
                 val text =
-                    if (result != null) {
-                        stringResource(Res.string.success)
-                    } else {
-                        stringResource(Res.string.routing_error_no_response)
+                    when {
+                        received && log.fromRadio.packet?.to == NodeAddress.NODENUM_BROADCAST ->
+                            stringResource(Res.string.fwplus_ni_broadcast)
+
+                        received -> stringResource(Res.string.fwplus_ni_received)
+
+                        result != null -> stringResource(Res.string.success)
+
+                        else -> stringResource(Res.string.routing_error_no_response)
                     }
                 val icon = if (result != null) MeshtasticIcons.Groups else MeshtasticIcons.PersonOff
                 val header = stringResource(Res.string.neighbor_info)
@@ -152,5 +169,21 @@ fun NeighborInfoLogScreen(modifier: Modifier = Modifier, viewModel: MetricsViewM
                 }
             }
         }
+    }
+}
+
+/**
+ * Neighbor info the node sent without our asking: the periodic broadcast (on FW+ firmware also on the open primary
+ * channel) or a reply to another phone's request. Replies to our own requests are shown under the request instead.
+ */
+private fun unsolicitedNeighborInfo(state: MetricsState): List<MeshLog> {
+    val ourRequestIds = state.neighborInfoRequests.mapNotNull { it.fromRadio.packet?.id }.toSet()
+    return state.neighborInfoResults.filter { log ->
+        val packet = log.fromRadio.packet ?: return@filter false
+        val decoded = packet.decoded ?: return@filter false
+        log.fromNum != MeshLog.NODE_NUM_LOCAL &&
+            !decoded.want_response &&
+            decoded.request_id !in ourRequestIds &&
+            packet.neighborInfo != null
     }
 }

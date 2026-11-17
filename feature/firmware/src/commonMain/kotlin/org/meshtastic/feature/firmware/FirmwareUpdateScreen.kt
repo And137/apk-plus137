@@ -162,6 +162,8 @@ import org.meshtastic.core.resources.firmware_update_wipe_ble_detail
 import org.meshtastic.core.resources.firmware_update_wipe_confirm_warning
 import org.meshtastic.core.resources.firmware_update_wipe_label
 import org.meshtastic.core.resources.firmware_update_wipe_usb_detail
+import org.meshtastic.core.resources.fwplus_update_channel
+import org.meshtastic.core.resources.fwplus_update_stock_warning
 import org.meshtastic.core.resources.i_know_what_i_m_doing
 import org.meshtastic.core.resources.img_chirpy
 import org.meshtastic.core.resources.img_hw_unknown
@@ -214,6 +216,7 @@ fun FirmwareUpdateScreen(onNavigateUp: () -> Unit, viewModel: FirmwareUpdateView
     val selectedRelease by viewModel.selectedRelease.collectAsStateWithLifecycle()
     val pendingLocalFirmwareFile by viewModel.pendingLocalFirmwareFile.collectAsStateWithLifecycle()
     val nightlyUnlocked by viewModel.nightlyUnlocked.collectAsStateWithLifecycle()
+    val isFwPlusNode by viewModel.isFwPlusNode.collectAsStateWithLifecycle()
 
     var showExitConfirmation by remember { mutableStateOf(false) }
     var showChirpyHop by rememberSaveable { mutableStateOf(false) }
@@ -312,6 +315,7 @@ fun FirmwareUpdateScreen(onNavigateUp: () -> Unit, viewModel: FirmwareUpdateView
         state = state,
         selectedReleaseType = selectedReleaseType,
         showNightly = nightlyUnlocked,
+        isFwPlusNode = isFwPlusNode,
         actions = actions,
         deviceHardware = deviceHardware,
         currentVersion = currentVersion,
@@ -376,6 +380,7 @@ private fun FirmwareUpdateScaffold(
     selectedRelease: FirmwareRelease?,
     bootloaderFault: BootloaderFault?,
     modifier: Modifier = Modifier,
+    isFwPlusNode: Boolean = false,
 ) {
     Scaffold(
         modifier = modifier,
@@ -412,6 +417,7 @@ private fun FirmwareUpdateScaffold(
                 AnimatedVisibility(visible = showReleaseSelector) {
                     Column {
                         ReleaseTypeSelector(selectedReleaseType, showNightly, actions.onReleaseTypeSelect)
+                        StockOnFwPlusWarning(isFwPlusNode, selectedReleaseType)
                         Spacer(Modifier.height(16.dp))
                     }
                 }
@@ -1192,6 +1198,23 @@ private fun BootloaderWarningCard(deviceHardware: DeviceHardware, onDismissForDe
     }
 }
 
+/** On a FW+ node, a stock release replaces FW+: say so before the user starts the update. */
+@Composable
+private fun StockOnFwPlusWarning(isFwPlusNode: Boolean, selectedReleaseType: FirmwareReleaseType) {
+    val stock =
+        selectedReleaseType == FirmwareReleaseType.STABLE ||
+            selectedReleaseType == FirmwareReleaseType.ALPHA ||
+            selectedReleaseType == FirmwareReleaseType.NIGHTLY
+    if (isFwPlusNode && stock) {
+        Text(
+            text = stringResource(Res.string.fwplus_update_stock_warning),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
 @Composable
 private fun ReleaseTypeSelector(
     selectedReleaseType: FirmwareReleaseType,
@@ -1199,6 +1222,8 @@ private fun ReleaseTypeSelector(
     onReleaseTypeSelect: (FirmwareReleaseType) -> Unit,
 ) {
     val types = buildList {
+        // apk-plus137: FW+ releases first; for a FW+ node they are the default.
+        add(FirmwareReleaseType.FWPLUS to Res.string.fwplus_update_channel)
         add(FirmwareReleaseType.STABLE to Res.string.firmware_update_stable)
         add(FirmwareReleaseType.ALPHA to Res.string.firmware_update_alpha)
         // Hidden behind the hidden-features unlock, mirroring the web flasher's konami-gated nightly.

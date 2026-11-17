@@ -248,7 +248,7 @@ private fun TraceRouteMenuItem(
     // Seconds until the radio takes another traceroute; 0 when it would take one now.
     var secondsLeft by remember { mutableLongStateOf(0L) }
     LaunchedEffect(lastTracerouteTime) {
-        val endTime = (lastTracerouteTime ?: 0L) + COOL_DOWN_TIME_MS
+        val endTime = (lastTracerouteTime ?: 0L) + TRACEROUTE_COOL_DOWN_TIME_MS
         secondsLeft = cooldownSecondsLeft(endTime)
         while (secondsLeft > 0) {
             delay(COOLDOWN_TICK_MS)

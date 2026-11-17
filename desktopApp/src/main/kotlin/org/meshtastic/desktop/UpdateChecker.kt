@@ -26,10 +26,10 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.meshtastic.core.common.util.safeCatching
 
 /**
- * Checks GitHub Releases for a newer published desktop build.
+ * Checks the apk-plus137 GitHub Releases for a newer published Mesh+ 137 desktop build.
  *
- * The `releases/latest` endpoint only ever returns a published, non-draft, non-prerelease release, so users are only
- * pointed at builds that completed the full promotion pipeline (see `.github/workflows/promote.yml`).
+ * The `releases/latest` endpoint only ever returns a published, non-draft, non-prerelease release. Tags look like
+ * `v2.8.5-137.1`: the upstream base version, then the apk-plus137 build number.
  */
 class UpdateChecker(private val httpClient: HttpClient) {
 
@@ -55,28 +55,32 @@ class UpdateChecker(private val httpClient: HttpClient) {
         }
 
     companion object {
-        private const val LATEST_RELEASE_URL =
-            "https://api.github.com/repos/meshtastic/Meshtastic-Android/releases/latest"
-        private const val RELEASES_PAGE_URL = "https://github.com/meshtastic/Meshtastic-Android/releases"
+        private const val LATEST_RELEASE_URL = "https://api.github.com/repos/And137/apk-plus137/releases/latest"
+        private const val RELEASES_PAGE_URL = "https://github.com/And137/apk-plus137/releases"
 
-        private val VERSION_REGEX = Regex("""(\d+)\.(\d+)\.(\d+)""")
+        private val VERSION_REGEX = Regex("""(\d+)\.(\d+)\.(\d+)(?:-137\.(\d+))?""")
+
+        /** The running build in release-tag form, `X.Y.Z-137.N`, so a rebuild on the same base still compares. */
+        fun plusVersion(versionName: String, plusBuild: Int): String =
+            if (plusBuild > 0) "$versionName-137.$plusBuild" else versionName
 
         /**
-         * True when [latest] carries a strictly newer numeric X.Y.Z than [current]. Suffixes (`v`, `-internal.N`) are
-         * ignored; versions that don't parse never trigger an update.
+         * True when [latest] carries a strictly newer X.Y.Z, or the same X.Y.Z with a higher `-137.N` build, than
+         * [current]. Other suffixes (`v`, `-internal.N`) are ignored; versions that don't parse never trigger an
+         * update.
          */
         internal fun isNewer(latest: String, current: String): Boolean {
             val latestVersion = parse(latest)
             val currentVersion = parse(current)
-            return latestVersion != null &&
-                currentVersion != null &&
-                compareValuesBy(latestVersion, currentVersion, { it.first }, { it.second }, { it.third }) > 0
+            if (latestVersion == null || currentVersion == null) return false
+            // Both lists hold major, minor, patch and plus build: the first differing component decides.
+            val firstDifference = latestVersion.zip(currentVersion).firstOrNull { (l, c) -> l != c }
+            return firstDifference != null && firstDifference.first > firstDifference.second
         }
 
-        private fun parse(raw: String): Triple<Int, Int, Int>? =
-            VERSION_REGEX.find(raw)?.destructured?.let { (major, minor, patch) ->
-                // runCatching: \d+ can match components too large for Int; treat those as unparseable.
-                runCatching { Triple(major.toInt(), minor.toInt(), patch.toInt()) }.getOrNull()
-            }
+        private fun parse(raw: String): List<Int>? = VERSION_REGEX.find(raw)?.groupValues?.let { groups ->
+            // runCatching: \d+ can match components too large for Int; treat those as unparseable.
+            runCatching { groups.drop(1).map { if (it.isEmpty()) 0 else it.toInt() } }.getOrNull()
+        }
     }
 }

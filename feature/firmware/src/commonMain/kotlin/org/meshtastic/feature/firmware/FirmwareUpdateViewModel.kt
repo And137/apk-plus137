@@ -59,6 +59,8 @@ import org.meshtastic.core.model.FirmwareRelease
 import org.meshtastic.core.model.FirmwareReleaseType
 import org.meshtastic.core.model.InterfaceId
 import org.meshtastic.core.model.MyNodeInfo
+import org.meshtastic.core.model.firmwareVersionMatches
+import org.meshtastic.core.model.fwPlusVersionOf
 import org.meshtastic.core.model.util.anonymize
 import org.meshtastic.core.repository.DeviceHardwareRepository
 import org.meshtastic.core.repository.FirmwareReleaseRepository
@@ -283,7 +285,15 @@ class FirmwareUpdateViewModel(
         }
     }
 
+    /** True when the connected node runs FW+ firmware: FW+ updates are the default and stock ones carry a warning. */
+    private val _isFwPlusNode = MutableStateFlow(false)
+    val isFwPlusNode: StateFlow<Boolean> = _isFwPlusNode.asStateFlow()
+
+    /** Set once the user picks a release type; until then a FW+ node starts on the FW+ releases. */
+    private var releaseTypeChosen = false
+
     fun setReleaseType(type: FirmwareReleaseType) {
+        releaseTypeChosen = true
         _selectedReleaseType.value = type
         checkForUpdates()
     }
@@ -341,6 +351,8 @@ class FirmwareUpdateViewModel(
                 val deviceHardware = getDeviceHardware(ourNode) ?: return@launch
                 _deviceHardware.value = deviceHardware
                 _currentFirmwareVersion.value = ourNode.firmwareVersion
+                _isFwPlusNode.value = fwPlusVersionOf(ourNode.firmwareVersion) != null
+                if (!releaseTypeChosen && _isFwPlusNode.value) _selectedReleaseType.value = FirmwareReleaseType.FWPLUS
                 // Best-effort, once per check — not per release-flow emission below. A failed fetch, or one
                 // carrying no images at all, leaves the cache/seed untouched, so this never regresses the
                 // maintenance gate.
@@ -1421,7 +1433,10 @@ class FirmwareUpdateViewModel(
                 connectionState.first { it is ConnectionState.Connected }
                 nodeRepository.ourNodeInfo.filterNotNull().first()
                 // A reconnect alone can be the old firmware still running; wait for the release it was given.
-                if (expected != null) nodeRepository.myNodeInfo.first { it?.firmwareVersion == expected }
+                // FW+ nodes report the release version plus their board suffix ("2.8.3.1373" -> "2.8.3.1373He3").
+                if (expected != null) {
+                    nodeRepository.myNodeInfo.first { info -> firmwareVersionMatches(info?.firmwareVersion, expected) }
+                }
                 delay(VERIFY_DELAY) // Extra buffer for initial config sync
                 true
             }
@@ -1568,6 +1583,7 @@ private fun FirmwareReleaseRepository.getReleaseFlow(type: FirmwareReleaseType):
     FirmwareReleaseType.STABLE -> stableRelease
     FirmwareReleaseType.ALPHA -> alphaRelease
     FirmwareReleaseType.NIGHTLY -> nightlyRelease
+    FirmwareReleaseType.FWPLUS -> fwPlusRelease
     FirmwareReleaseType.LOCAL -> flowOf(null)
 }
 

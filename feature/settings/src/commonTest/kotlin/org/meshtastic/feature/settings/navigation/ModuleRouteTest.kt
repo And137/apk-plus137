@@ -36,12 +36,33 @@ class ModuleRouteTest {
     private fun routes(excluded: Int = 0, role: Config.DeviceConfig.Role = Config.DeviceConfig.Role.TAK) =
         ModuleRoute.filterExcludedFrom(metadata(excluded), role)
 
+    /** Every route a non-FW+ node can be offered; the FW+ routes need `hasNodemod`. */
+    private val upstreamRoutes = ModuleRoute.entries.filterNot { it.requiresFwPlus }
+
     @Test
     fun `every route carries its own excluded_modules bit`() {
-        val bits = ModuleRoute.entries.map { it.excludedAs }
+        val bits = upstreamRoutes.map { it.excludedAs }
 
         assertEquals(bits.size, bits.toSet().size)
         assertFalse(ExcludedModules.EXCLUDED_NONE in bits)
+    }
+
+    @Test
+    fun `fw plus routes carry no excluded_modules bit`() {
+        assertEquals(listOf(null, null, null), ModuleRoute.entries.filter { it.requiresFwPlus }.map { it.excludedAs })
+    }
+
+    @Test
+    fun `fw plus routes are listed only for nodes reporting hasNodemod`() {
+        val fwPlusRoutes = ModuleRoute.entries.filter { it.requiresFwPlus }
+        // DeviceMetadata.hasNodemod (field 21) set the way FW+ firmware encodes it.
+        val fwPlusMetadata = DeviceMetadata.ADAPTER.decode(metadata().encode() + byteArrayOf(0xA8.toByte(), 0x01, 0x01))
+
+        assertEquals(emptyList(), routes().filter { it.requiresFwPlus })
+        assertEquals(
+            fwPlusRoutes,
+            ModuleRoute.filterExcludedFrom(fwPlusMetadata, Config.DeviceConfig.Role.TAK).filter { it.requiresFwPlus },
+        )
     }
 
     @Test
@@ -56,34 +77,34 @@ class ModuleRouteTest {
     fun `the TAK bit hides the TAK module and nothing else`() {
         val listed = routes(excluded = ExcludedModules.TAK_CONFIG.value)
 
-        assertEquals(ModuleRoute.entries - ModuleRoute.TAK, listed)
+        assertEquals(upstreamRoutes - ModuleRoute.TAK, listed)
     }
 
     @Test
     fun `the Mesh Beacon bit hides the Mesh Beacon module and nothing else`() {
         val listed = routes(excluded = ExcludedModules.MESHBEACON_CONFIG.value)
 
-        assertEquals(ModuleRoute.entries - ModuleRoute.MESH_BEACON, listed)
+        assertEquals(upstreamRoutes - ModuleRoute.MESH_BEACON, listed)
     }
 
     @Test
     fun `the status message and traffic management bits hide no module route`() {
         val excluded = ExcludedModules.STATUSMESSAGE_CONFIG.value or ExcludedModules.TRAFFICMANAGEMENT_CONFIG.value
 
-        assertEquals(ModuleRoute.entries.toList(), routes(excluded = excluded))
+        assertEquals(upstreamRoutes, routes(excluded = excluded))
     }
 
     @Test
     fun `an older bit still hides its module`() {
         val listed = routes(excluded = ExcludedModules.MQTT_CONFIG.value or ExcludedModules.PAXCOUNTER_CONFIG.value)
 
-        assertEquals(ModuleRoute.entries - ModuleRoute.MQTT - ModuleRoute.PAXCOUNTER, listed)
+        assertEquals(upstreamRoutes - ModuleRoute.MQTT - ModuleRoute.PAXCOUNTER, listed)
     }
 
     @Test
     fun `metadata not read yet excludes nothing and leaves only the version gates`() {
         val listed = ModuleRoute.filterExcludedFrom(null, Config.DeviceConfig.Role.TAK)
 
-        assertEquals(ModuleRoute.entries - ModuleRoute.TAK - ModuleRoute.MESH_BEACON, listed)
+        assertEquals(upstreamRoutes - ModuleRoute.TAK - ModuleRoute.MESH_BEACON, listed)
     }
 }

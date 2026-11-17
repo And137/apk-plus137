@@ -52,30 +52,37 @@ class AboutScreenTest {
         // Top app bar
         onNodeWithText("About").assertIsDisplayed()
 
+        // Mesh+ 137 section
+        onNodeWithText("What is Mesh+ 137?").assertIsDisplayed()
+        onNodeWithText("Source code (Mesh+ 137)").performScrollTo().assertIsDisplayed()
+        onNodeWithText("FW+ firmware").performScrollTo().assertIsDisplayed()
+
         // What is Meshtastic section
-        onNodeWithText("What is Meshtastic?").assertIsDisplayed()
+        onNodeWithText("What is Meshtastic?").performScrollTo().assertIsDisplayed()
         onNodeWithText(
             "An open source, off-grid, decentralized, mesh network that runs on affordable, low-power radios.",
         )
+            .performScrollTo()
             .assertIsDisplayed()
 
         // Apps section
-        onNodeWithText("Apps").assertIsDisplayed()
-        onNodeWithText("Need Hardware?").assertIsDisplayed()
+        onNodeWithText("Apps").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Need Hardware?").performScrollTo().assertIsDisplayed()
         onNodeWithText(
             "Meshtastic requires a compatible device. Our backers and partners offer ready-to-use hardware. " +
                 "Here are some of the most popular options.",
         )
+            .performScrollTo()
             .assertIsDisplayed()
-        onNodeWithText("GitHub Repository").assertIsDisplayed()
-        onNodeWithText("Version").assertIsDisplayed()
-        onNodeWithText("2.5.0").assertIsDisplayed()
-        onNodeWithText("Acknowledgements").assertIsDisplayed()
+        onNodeWithText("Original project: Meshtastic-Android").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Version").performScrollTo().assertIsDisplayed()
+        onNodeWithText("2.5.0").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Acknowledgements").performScrollTo().assertIsDisplayed()
 
         // Project information section
-        onNodeWithText("Project information").assertIsDisplayed()
-        onNodeWithText("Website").assertIsDisplayed()
-        onNodeWithText("Documentation").assertIsDisplayed()
+        onNodeWithText("Project information").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Website").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Documentation").performScrollTo().assertIsDisplayed()
         onNodeWithText("License").performScrollTo().assertIsDisplayed()
 
         // Copyright footer
@@ -87,7 +94,15 @@ class AboutScreenTest {
             .performScrollTo()
             .assertIsDisplayed()
 
-        onNodeWithText("Acknowledgements").performClick()
+        onNodeWithText(
+            "Mesh+ 137 is a modified version of Meshtastic-Android, changed by And137 since 2026. " +
+                "Not affiliated with or endorsed by the Meshtastic project. " +
+                "Meshtastic® is a registered trademark of Meshtastic LLC.",
+        )
+            .performScrollTo()
+            .assertIsDisplayed()
+
+        onNodeWithText("Acknowledgements").performScrollTo().performClick()
         assertTrue(navigatedToAcknowledgements)
 
         onNodeWithContentDescription("Navigate Back").performClick()
@@ -113,5 +128,26 @@ class AboutScreenTest {
         onNodeWithText("License").performScrollTo().performClick()
 
         assertEquals(listOf("https://www.gnu.org/licenses/gpl-3.0.html"), openedUris)
+    }
+
+    @Test
+    fun `source row opens this build's repository`() = runComposeUiTest {
+        val openedUris = mutableListOf<String>()
+        val uriHandler =
+            object : UriHandler {
+                override fun openUri(uri: String) {
+                    openedUris += uri
+                }
+            }
+
+        setContent {
+            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+                AppTheme { AboutScreen(appVersionName = "2.5.0", onNavigateUp = {}, onNavigateToAcknowledgements = {}) }
+            }
+        }
+
+        onNodeWithText("Source code (Mesh+ 137)").performScrollTo().performClick()
+
+        assertEquals(listOf("https://github.com/And137/apk-plus137"), openedUris)
     }
 }

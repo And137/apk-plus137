@@ -70,6 +70,7 @@ import org.meshtastic.core.resources.encryption_error
 import org.meshtastic.core.resources.encryption_error_text
 import org.meshtastic.core.resources.error
 import org.meshtastic.core.resources.formatDuration
+import org.meshtastic.core.resources.fwplus_status
 import org.meshtastic.core.resources.hops_away
 import org.meshtastic.core.resources.long_name
 import org.meshtastic.core.resources.no_public_key
@@ -195,6 +196,15 @@ private fun MainNodeDetails(node: Node, isLocal: Boolean, onRequestUserInfo: (()
         node.nodeStatus?.let { status ->
             SectionDivider()
             StatusMessageRow(status)
+        }
+        node.fwPlusStatusLine?.let { status ->
+            SectionDivider()
+            InfoItem(
+                label = stringResource(Res.string.fwplus_status),
+                value = status,
+                icon = MeshtasticIcons.Notes,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         SectionDivider()
         NodeIdentificationRow(node)
