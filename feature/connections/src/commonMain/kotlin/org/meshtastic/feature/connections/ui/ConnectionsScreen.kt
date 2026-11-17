@@ -111,7 +111,6 @@ import org.meshtastic.core.resources.open_bluetooth_settings
 import org.meshtastic.core.resources.open_location_settings
 import org.meshtastic.core.resources.open_settings
 import org.meshtastic.core.resources.open_wifi_settings
-import org.meshtastic.core.resources.radio_setup_title
 import org.meshtastic.core.resources.rssi
 import org.meshtastic.core.resources.set_your_region
 import org.meshtastic.core.resources.transmit_disabled
@@ -161,6 +160,7 @@ import org.meshtastic.feature.connections.ui.components.CurrentlyConnectedText
 import org.meshtastic.feature.connections.ui.components.DeviceList
 import org.meshtastic.feature.connections.ui.components.EventFirmwareCard
 import org.meshtastic.feature.connections.ui.components.LiveUpdateSection
+import org.meshtastic.feature.connections.ui.components.RememberedDevicesToggle
 import org.meshtastic.feature.connections.ui.components.TransportSelector
 import org.meshtastic.feature.connections.ui.components.loraSummary
 import org.meshtastic.proto.Config
@@ -229,18 +229,22 @@ internal fun ConfigurationWarningCards(
         )
 
     // Emitted only when there is a card to show: an empty column would still take a gap in the caller's spacing.
-    if (!showWarnings) return
+    // A configured radio (region set) gets no setup card here; the guided setup stays reachable from Settings.
+    val txCard = txDisabled && !regionUnset
+    if (!showWarnings || !(regionUnset || txCard)) return
     Column(verticalArrangement = Arrangement.spacedBy(HeaderItemSpacing)) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            ListItem(
-                leadingIcon = MeshtasticIcons.Language,
-                text = stringResource(if (regionUnset) Res.string.set_your_region else Res.string.radio_setup_title),
-                onClick = { onConfigNavigate(SettingsRoute.RadioSetup(radioSetupAddress)) },
-            )
+        if (regionUnset) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    leadingIcon = MeshtasticIcons.Language,
+                    text = stringResource(Res.string.set_your_region),
+                    onClick = { onConfigNavigate(SettingsRoute.RadioSetup(radioSetupAddress)) },
+                )
+            }
         }
 
         // An unset region already disables transmit and has its own card, so do not blame one root cause twice.
-        if (txDisabled && !regionUnset) {
+        if (txCard) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 ListItem(
                     leadingIcon = MeshtasticIcons.CellTower,
@@ -285,6 +289,9 @@ fun ConnectionsScreen(
     val bleDevices by scanModel.bleDevicesForUi.collectAsStateWithLifecycle()
     val discoveredTcpDevices by scanModel.discoveredTcpDevicesForUi.collectAsStateWithLifecycle()
     val recentTcpDevices by scanModel.recentTcpDevicesForUi.collectAsStateWithLifecycle()
+    val showRememberedDevices by scanModel.showRememberedDevices.collectAsStateWithLifecycle()
+    val hiddenRememberedBle by scanModel.hiddenRememberedBleCount.collectAsStateWithLifecycle()
+    val hiddenRememberedTcp by scanModel.hiddenRememberedTcpCount.collectAsStateWithLifecycle()
     val usbDevices by scanModel.usbDevicesForUi.collectAsStateWithLifecycle()
     val isBleScanning by scanModel.isBleScanning.collectAsStateWithLifecycle()
     val isNetworkScanning by scanModel.isNetworkScanning.collectAsStateWithLifecycle()
@@ -764,6 +771,13 @@ fun ConnectionsScreen(
                     modifier = listModifier,
                     contentPadding = listPadding,
                     header = listHeader,
+                    remembered =
+                    RememberedDevicesToggle(
+                        show = showRememberedDevices,
+                        onShowChange = scanModel::setShowRememberedDevices,
+                        hiddenBle = hiddenRememberedBle,
+                        hiddenTcp = hiddenRememberedTcp,
+                    ),
                     connectionState = connectionState,
                     selectedDevice = selectedDevice,
                     bleDevices = bleDevices,

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.NumberFormatter
+import org.meshtastic.core.fwplus.hasNodeMod
 import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.Channel
 import org.meshtastic.core.model.ChannelOption
@@ -493,6 +494,9 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                     )
                 }
             }
+        }
+        if (state.metadata?.hasNodeMod == true) {
+            fieldItem(emptyList()) { FwPlusRadioPowerCard(formState, enabled = state.connected) }
         }
     }
 }

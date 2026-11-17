@@ -18,6 +18,8 @@ package org.meshtastic.feature.settings.navigation
 
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
+import org.meshtastic.core.fwplus.FwPlusModuleConfigType
+import org.meshtastic.core.fwplus.hasNodeMod
 import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.excludes
 import org.meshtastic.core.navigation.Route
@@ -28,8 +30,14 @@ import org.meshtastic.core.resources.audio
 import org.meshtastic.core.resources.canned_message
 import org.meshtastic.core.resources.detection_sensor
 import org.meshtastic.core.resources.external_notification
+import org.meshtastic.core.resources.fwplus_broadcast_assist
+import org.meshtastic.core.resources.fwplus_configuration
+import org.meshtastic.core.resources.fwplus_node_status
+import org.meshtastic.core.resources.ic_admin_panel_settings
+import org.meshtastic.core.resources.ic_cell_tower
 import org.meshtastic.core.resources.ic_cloud
 import org.meshtastic.core.resources.ic_data_usage
+import org.meshtastic.core.resources.ic_edit
 import org.meshtastic.core.resources.ic_group
 import org.meshtastic.core.resources.ic_light_mode
 import org.meshtastic.core.resources.ic_message
@@ -64,6 +72,8 @@ enum class ModuleRoute(
     val isSupported: (Capabilities) -> Boolean = { true },
     val isApplicable: (Config.DeviceConfig.Role?) -> Boolean = { true },
     val hasReadFanOut: Boolean = false,
+    /** Offered only to nodes running FW+ firmware, which report `DeviceMetadata.hasNodemod`. */
+    val requiresFwPlus: Boolean = false,
 ) {
     MQTT(Res.string.mqtt, SettingsRoute.MQTT, Res.drawable.ic_cloud, AdminMessage.ModuleConfigType.MQTT_CONFIG.value),
     SERIAL(
@@ -159,34 +169,82 @@ enum class ModuleRoute(
         isSupported = { it.supportsMeshBeacon },
         hasReadFanOut = true,
     ),
+    FW_PLUS_BROADCAST_ASSIST(
+        Res.string.fwplus_broadcast_assist,
+        SettingsRoute.FwPlusBroadcastAssist,
+        Res.drawable.ic_cell_tower,
+        FwPlusModuleConfigType.BROADCAST_ASSIST_CONFIG,
+        requiresFwPlus = true,
+    ),
+    FW_PLUS_NODE_STATUS(
+        Res.string.fwplus_node_status,
+        SettingsRoute.FwPlusNodeStatus,
+        Res.drawable.ic_edit,
+        FwPlusModuleConfigType.NODEMOD_CONFIG,
+        requiresFwPlus = true,
+    ),
+    FW_PLUS_CONFIG(
+        Res.string.fwplus_configuration,
+        SettingsRoute.FwPlusConfig,
+        Res.drawable.ic_admin_panel_settings,
+        FwPlusModuleConfigType.NODEMOD_ADMIN_CONFIG,
+        requiresFwPlus = true,
+    ),
     ;
 
-    /** The `excluded_modules` bit a node sets when this module is compiled out of its firmware. */
-    val excludedAs: ExcludedModules
+    /**
+     * The `excluded_modules` bit a node sets when this module is compiled out of its firmware. Null for FW+ modules,
+     * which have no bit there; [requiresFwPlus] gates them instead.
+     */
+    val excludedAs: ExcludedModules?
         get() =
             when (this) {
                 MQTT -> ExcludedModules.MQTT_CONFIG
+
                 SERIAL -> ExcludedModules.SERIAL_CONFIG
+
                 EXT_NOTIFICATION -> ExcludedModules.EXTNOTIF_CONFIG
+
                 STORE_FORWARD -> ExcludedModules.STOREFORWARD_CONFIG
+
                 RANGE_TEST -> ExcludedModules.RANGETEST_CONFIG
+
                 TELEMETRY -> ExcludedModules.TELEMETRY_CONFIG
+
                 CANNED_MESSAGE -> ExcludedModules.CANNEDMSG_CONFIG
+
                 AUDIO -> ExcludedModules.AUDIO_CONFIG
+
                 REMOTE_HARDWARE -> ExcludedModules.REMOTEHARDWARE_CONFIG
+
                 NEIGHBOR_INFO -> ExcludedModules.NEIGHBORINFO_CONFIG
+
                 AMBIENT_LIGHTING -> ExcludedModules.AMBIENTLIGHTING_CONFIG
+
                 DETECTION_SENSOR -> ExcludedModules.DETECTIONSENSOR_CONFIG
+
                 PAXCOUNTER -> ExcludedModules.PAXCOUNTER_CONFIG
+
                 TAK -> ExcludedModules.TAK_CONFIG
+
                 MESH_BEACON -> ExcludedModules.MESHBEACON_CONFIG
+
+                FW_PLUS_BROADCAST_ASSIST,
+                FW_PLUS_NODE_STATUS,
+                FW_PLUS_CONFIG,
+                -> null
             }
 
     companion object {
         fun filterExcludedFrom(metadata: DeviceMetadata?, role: Config.DeviceConfig.Role?): List<ModuleRoute> {
             val capabilities = Capabilities(metadata?.firmware_version)
-            return entries.filter {
-                !metadata.excludes(it.excludedAs) && it.isSupported(capabilities) && it.isApplicable(role)
+            val isFwPlus = metadata?.hasNodeMod == true
+            return entries.filter { route ->
+                val excluded = route.excludedAs?.let { metadata.excludes(it) } ?: false
+                !excluded &&
+                    (!route.requiresFwPlus || isFwPlus) &&
+                    route.isSupported(capabilities) &&
+                    route.isApplicable(role)
             }
         }
     }

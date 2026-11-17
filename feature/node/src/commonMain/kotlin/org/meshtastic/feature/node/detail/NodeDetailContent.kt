@@ -43,6 +43,9 @@ import org.meshtastic.feature.node.component.DisplayNameSection
 import org.meshtastic.feature.node.component.NodeDetailsSection
 import org.meshtastic.feature.node.component.NodeMenuAction
 import org.meshtastic.feature.node.component.NotesSection
+import org.meshtastic.feature.node.fwplus.FwPlusSection
+import org.meshtastic.feature.node.fwplus.PacketCounterSection
+import org.meshtastic.feature.node.fwplus.looksFwPlus
 import org.meshtastic.feature.node.model.NodeDetailAction
 
 /**
@@ -140,6 +143,18 @@ fun NodeDetailList(
                 trackedInLiveUpdate = trackedInLiveUpdate,
             )
         }
+        val fwPlusStats = uiState.metricsState.localStatsExtended.firstOrNull()
+        if (node.looksFwPlus || ourNode?.looksFwPlus == true || fwPlusStats != null) {
+            item {
+                FwPlusSection(
+                    node = node,
+                    localStats = uiState.metricsState.localStats.firstOrNull(),
+                    extendedStats = fwPlusStats,
+                    onAction = onAction,
+                )
+            }
+        }
+        item { PacketCounterSection(nodeNum = node.num) }
         item { DisplayNameSection(node = node, onSaveDisplayName = onSaveDisplayName) }
         item { NotesSection(node = node, onSaveNotes = onSaveNotes) }
         if (!uiState.metricsState.isManaged) {

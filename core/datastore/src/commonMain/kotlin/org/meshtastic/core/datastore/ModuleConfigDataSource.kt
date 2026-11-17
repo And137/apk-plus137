@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import org.koin.core.annotation.Single
 import org.meshtastic.core.datastore.di.CoreModuleConfigDataStore
+import org.meshtastic.core.fwplus.hasFwPlusPayload
+import org.meshtastic.core.fwplus.withFwPlusSections
 import org.meshtastic.proto.LocalModuleConfig
 import org.meshtastic.proto.ModuleConfig
 
@@ -56,8 +58,7 @@ class ModuleConfigDataSource(private val moduleConfigStore: CoreModuleConfigData
             config.store_forward != null ->
                 current.newBuilder().also { wb -> wb.store_forward = config.store_forward }.build()
 
-            config.range_test != null ->
-                current.newBuilder().also { wb -> wb.range_test = config.range_test }.build()
+            config.range_test != null -> current.newBuilder().also { wb -> wb.range_test = config.range_test }.build()
 
             config.telemetry != null -> current.newBuilder().also { wb -> wb.telemetry = config.telemetry }.build()
 
@@ -78,8 +79,7 @@ class ModuleConfigDataSource(private val moduleConfigStore: CoreModuleConfigData
             config.detection_sensor != null ->
                 current.newBuilder().also { wb -> wb.detection_sensor = config.detection_sensor }.build()
 
-            config.paxcounter != null ->
-                current.newBuilder().also { wb -> wb.paxcounter = config.paxcounter }.build()
+            config.paxcounter != null -> current.newBuilder().also { wb -> wb.paxcounter = config.paxcounter }.build()
 
             config.statusmessage != null ->
                 current.newBuilder().also { wb -> wb.statusmessage = config.statusmessage }.build()
@@ -91,6 +91,9 @@ class ModuleConfigDataSource(private val moduleConfigStore: CoreModuleConfigData
 
             config.mesh_beacon != null ->
                 current.newBuilder().also { wb -> wb.mesh_beacon = config.mesh_beacon }.build()
+
+            // FW+ sections travel as unknown fields of ModuleConfig; keep them in the cached copy too.
+            config.hasFwPlusPayload -> current.withFwPlusSections(config)
 
             else -> current
         }

@@ -40,6 +40,9 @@ import kotlinx.coroutines.delay
 import org.meshtastic.core.common.util.nowMillis
 
 internal const val COOL_DOWN_TIME_MS = 30000L
+
+// FW+ firmware takes a traceroute every 10 s (stock firmware keeps a 30 s window and rejects earlier ones).
+internal const val TRACEROUTE_COOL_DOWN_TIME_MS = 10000L
 internal const val REQUEST_NEIGHBORS_COOL_DOWN_TIME_MS = 180000L // 3 minutes
 
 @Composable

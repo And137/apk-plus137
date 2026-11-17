@@ -129,6 +129,14 @@ interface UiPrefs {
 
     fun setHasShownNotPairedWarning(shown: Boolean)
 
+    /**
+     * Whether the Connections list also shows remembered devices that are not in range right now: bonded Bluetooth
+     * radios that are not advertising and recent network addresses that discovery has not found.
+     */
+    val showRememberedDevices: StateFlow<Boolean>
+
+    fun setShowRememberedDevices(show: Boolean)
+
     val showQuickChat: StateFlow<Boolean>
 
     /** Flips the stored value, not [showQuickChat]'s snapshot, which lags a pending write. */

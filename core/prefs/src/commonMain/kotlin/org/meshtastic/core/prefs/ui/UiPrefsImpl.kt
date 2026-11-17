@@ -56,7 +56,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
     }
 
     override val theme: StateFlow<Int> =
-        dataStore.data.map { it[KEY_THEME] ?: -1 }.stateIn(scope, SharingStarted.Lazily, -1)
+        dataStore.data.map { it[KEY_THEME] ?: DEFAULT_THEME }.stateIn(scope, SharingStarted.Lazily, DEFAULT_THEME)
 
     override fun setTheme(value: Int) {
         scope.launch { dataStore.edit { it[KEY_THEME] = value } }
@@ -102,6 +102,13 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
 
     override fun setHasShownNotPairedWarning(shown: Boolean) {
         scope.launch { dataStore.edit { it[KEY_HAS_SHOWN_NOT_PAIRED_WARNING_PREF] = shown } }
+    }
+
+    override val showRememberedDevices: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_SHOW_REMEMBERED_DEVICES] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    override fun setShowRememberedDevices(show: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_SHOW_REMEMBERED_DEVICES] = show } }
     }
 
     override val showQuickChat: StateFlow<Boolean> =
@@ -359,12 +366,16 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
     companion object {
         val KEY_HAS_SHOWN_NOT_PAIRED_WARNING_PREF = booleanPreferencesKey("has_shown_not_paired_warning")
         val KEY_SHOW_QUICK_CHAT_PREF = booleanPreferencesKey("show-quick-chat")
+        val KEY_SHOW_REMEMBERED_DEVICES = booleanPreferencesKey("show-remembered-devices")
         val KEY_SHOW_FULL_MESSAGE_TIMESTAMPS = booleanPreferencesKey("show-full-message-timestamps")
         val KEY_EVENT_THEME_ENABLED = booleanPreferencesKey("event-theme-enabled")
         val KEY_RADIO_SETUP_OFFERED = stringSetPreferencesKey("radio-setup-offered-nodes")
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
         val KEY_THEME = intPreferencesKey("theme")
+
+        /** Mesh+ 137 starts dark: AppCompatDelegate.MODE_NIGHT_YES. */
+        const val DEFAULT_THEME = 2
         private val KEY_UNITS_OVERRIDE = intPreferencesKey("units_override")
         val KEY_LOCALE = stringPreferencesKey("locale")
         val KEY_NODE_SORT = intPreferencesKey("node-sort-option")
