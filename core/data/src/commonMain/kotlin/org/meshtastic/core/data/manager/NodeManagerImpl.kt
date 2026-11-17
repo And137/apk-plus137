@@ -785,6 +785,32 @@ class NodeManagerImpl(
         }
     }
 
+    override fun handleReceivedFwPlusStatus(
+        fromNum: Int,
+        status: String?,
+        emoji: String?,
+        session: RadioSessionContext?,
+    ) {
+        updateNodeAndSchedulePersistence(fromNum, channel = 0, session = session) { node ->
+            node.copy(
+                fwPlusStatus = status?.takeIf { it.isNotBlank() },
+                fwPlusEmoji = emoji?.takeIf { it.isNotBlank() },
+                fwPlusSeen = true,
+            )
+        }
+    }
+
+    override fun markFwPlus(nodeNum: Int, session: RadioSessionContext?, fwPlusVersion: Int?) {
+        // Checked first so a node that keeps answering does not schedule a database write every time. A version is
+        // kept until the node reports a different one.
+        val known = nodeDBbyNodeNum[nodeNum]
+        val version = fwPlusVersion?.takeIf { it > 0 }
+        if (known?.fwPlusSeen == true && (version == null || known.fwPlusVersion == version)) return
+        updateNodeAndSchedulePersistence(nodeNum, channel = 0, session = session) { node ->
+            node.copy(fwPlusSeen = true, fwPlusVersion = version ?: node.fwPlusVersion)
+        }
+    }
+
     override fun updateNodeStatus(nodeNum: Int, status: String?) {
         updateNode(nodeNum) { node -> applyNodeStatus(node, status) }
     }

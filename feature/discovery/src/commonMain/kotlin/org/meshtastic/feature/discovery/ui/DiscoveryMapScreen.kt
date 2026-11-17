@@ -74,34 +74,34 @@ fun DiscoveryMapScreen(viewModel: DiscoveryMapViewModel, onNavigateUp: () -> Uni
             return@Scaffold
         }
 
-        val mapNodes =
-            allNodes.mapNotNull { entity ->
-                val lat = entity.latitude ?: return@mapNotNull null
-                val lon = entity.longitude ?: return@mapNotNull null
-                if (lat == 0.0 && lon == 0.0) return@mapNotNull null
-                DiscoveryMapNode(
-                    latitude = lat,
-                    longitude = lon,
-                    shortName = entity.shortName,
-                    longName = entity.longName,
-                    neighborType =
-                    if (entity.neighborType == "direct") {
-                        DiscoveryNeighborType.DIRECT
-                    } else {
-                        DiscoveryNeighborType.MESH
-                    },
-                    snr = entity.snr,
-                    rssi = entity.rssi,
-                    messageCount = entity.messageCount,
-                    sensorPacketCount = entity.sensorPacketCount,
-                )
-            }
+        val mapNodes = allNodes.mapNotNull { entity ->
+            val lat = entity.latitude ?: return@mapNotNull null
+            val lon = entity.longitude ?: return@mapNotNull null
+            if (lat == 0.0 && lon == 0.0) return@mapNotNull null
+            DiscoveryMapNode(
+                latitude = lat,
+                longitude = lon,
+                shortName = entity.shortName,
+                longName = entity.longName,
+                neighborType =
+                if (entity.neighborType == "direct") {
+                    DiscoveryNeighborType.DIRECT
+                } else {
+                    DiscoveryNeighborType.MESH
+                },
+                snr = entity.snr,
+                rssi = entity.rssi,
+                messageCount = entity.messageCount,
+                sensorPacketCount = entity.sensorPacketCount,
+            )
+        }
 
         discoveryMap(
             currentSession.userLatitude,
             currentSession.userLongitude,
             mapNodes,
             Modifier.fillMaxSize().padding(padding),
+            null,
         )
     }
 }

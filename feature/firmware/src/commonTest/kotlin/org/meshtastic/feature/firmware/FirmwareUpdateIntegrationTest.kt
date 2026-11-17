@@ -93,6 +93,9 @@ class FirmwareUpdateIntegrationTest {
         Dispatchers.setMain(testDispatcher)
         every { firmwareReleaseRepository.stableRelease } returns flowOf(stableRelease)
         every { firmwareReleaseRepository.alphaRelease } returns flowOf(stableRelease)
+        // apk-plus137: the screen opens on FW+ releases; these tests describe the stable channel, so FW+ follows
+        // whatever the test stubs as the stable release.
+        every { firmwareReleaseRepository.fwPlusRelease } calls { firmwareReleaseRepository.stableRelease }
         every { radioPrefs.devAddr } returns MutableStateFlow("!1234abcd")
         everySuspend { deviceHardwareRepository.getDeviceHardwareByModel(any(), any()) } returns
             Result.success(hardware)

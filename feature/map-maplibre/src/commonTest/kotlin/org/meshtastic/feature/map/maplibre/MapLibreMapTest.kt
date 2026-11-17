@@ -71,10 +71,11 @@ class BasemapRegistryTest {
     }
 
     @Test
-    fun `the default basemap is the maintained OpenFreeMap style`() {
+    fun `the default basemap is the dark OpenFreeMap style at the stored default index`() {
         val default = Basemaps.default
         assertTrue(default is Basemap.Vector)
-        assertEquals("https://tiles.openfreemap.org/styles/liberty", default.styleUri)
+        assertEquals("https://tiles.openfreemap.org/styles/dark", default.styleUri)
+        assertEquals(2, Basemaps.all.indexOf(default))
     }
 
     @Test

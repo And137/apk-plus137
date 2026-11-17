@@ -33,6 +33,7 @@ import org.meshtastic.core.model.NetworkDeviceHardware
 import org.meshtastic.core.model.NetworkDeviceLinksResponse
 import org.meshtastic.core.model.NetworkFirmwareNightly
 import org.meshtastic.core.model.NetworkFirmwareReleases
+import org.meshtastic.core.model.NetworkFwPlusRelease
 import org.meshtastic.core.network.HttpClientDefaults
 
 /**
@@ -76,6 +77,9 @@ interface ApiService {
      * published (HTTP 404); throws on transport or server errors so callers can distinguish "gone" from "unreachable".
      */
     suspend fun getNightlyFirmware(): NetworkFirmwareNightly?
+
+    /** apk-plus137: the latest FW+ firmware release from GitHub, or null when there is none. */
+    suspend fun getFwPlusLatestRelease(): NetworkFwPlusRelease?
 
     /** Fetches event-firmware display metadata (editions, welcome messages, links) from the Meshtastic API. */
     suspend fun getEventFirmware(): EventFirmwareResponse
@@ -127,6 +131,15 @@ class ApiServiceImpl(private val client: HttpClient) : ApiService {
             response.status == HttpStatusCode.NotFound -> null
             response.status.isSuccess() -> firmwareJson.decodeFromString<NetworkFirmwareNightly>(response.bodyAsText())
             else -> error("Unexpected HTTP ${response.status} fetching nightly firmware index")
+        }
+    }
+
+    override suspend fun getFwPlusLatestRelease(): NetworkFwPlusRelease? {
+        val response = client.get(HttpClientDefaults.FWPLUS_LATEST_RELEASE_URL)
+        return when {
+            response.status == HttpStatusCode.NotFound -> null
+            response.status.isSuccess() -> firmwareJson.decodeFromString<NetworkFwPlusRelease>(response.bodyAsText())
+            else -> error("Unexpected HTTP ${response.status} fetching the FW+ release")
         }
     }
 

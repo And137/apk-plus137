@@ -29,10 +29,12 @@ fun DiscoveryMap(
     userLongitude: Double,
     nodes: List<DiscoveryMapNode>,
     modifier: Modifier = Modifier,
+    centerLabel: String? = null,
 ) = MapLibreDiscoveryMap(
     userLatitude = userLatitude,
     userLongitude = userLongitude,
     nodes = nodes,
     modifier = modifier,
+    centerLabel = centerLabel,
     customBasemaps = { androidCustomRasterBasemaps() },
 )

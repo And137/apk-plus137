@@ -26,6 +26,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.core.common)
+            implementation(projects.core.fwplus)
             implementation(projects.core.database)
             implementation(projects.core.domain)
             implementation(projects.core.model)
@@ -44,7 +45,10 @@ kotlin {
             implementation(libs.coil)
         }
 
-        androidMain.dependencies { implementation(libs.androidx.appcompat) }
+        androidMain.dependencies {
+            implementation(libs.androidx.appcompat)
+            implementation(libs.androidx.core.ktx) // FileProvider for the Mesh+ 137 update installer
+        }
 
         commonTest.dependencies {
             implementation(projects.core.testing)

@@ -45,13 +45,16 @@ class MapPrefsImpl(private val dataStore: MapDataStore, dispatchers: CoroutineDi
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.default)
 
     override val mapStyle: StateFlow<Int> =
-        dataStore.data.map { it[KEY_MAP_STYLE_PREF] ?: 0 }.stateIn(scope, SharingStarted.Eagerly, 0)
+        dataStore.data
+            .map { it[KEY_MAP_STYLE_PREF] ?: DEFAULT_MAP_STYLE }
+            .stateIn(scope, SharingStarted.Eagerly, DEFAULT_MAP_STYLE)
 
     override fun setMapStyle(style: Int) {
         scope.launch { dataStore.edit { it[KEY_MAP_STYLE_PREF] = style } }
     }
 
-    override suspend fun awaitMapStyle(): Int = dataStore.data.map { it[KEY_MAP_STYLE_PREF] ?: 0 }.first()
+    override suspend fun awaitMapStyle(): Int =
+        dataStore.data.map { it[KEY_MAP_STYLE_PREF] ?: DEFAULT_MAP_STYLE }.first()
 
     override val mapFilters: StateFlow<MapFilterPrefs> =
         dataStore.data.map { it.toMapFilterPrefs() }.stateIn(scope, SharingStarted.Eagerly, MapFilterPrefs())
@@ -170,6 +173,9 @@ class MapPrefsImpl(private val dataStore: MapDataStore, dispatchers: CoroutineDi
     companion object {
         val KEY_MESH_HUD_COACH_SEEN_PREF = booleanPreferencesKey("mesh_hud_coach_seen")
         val KEY_MAP_STYLE_PREF = intPreferencesKey("map_style_id")
+
+        /** Index of the "Dark" basemap in the MapLibre `Basemaps.all` list: Mesh+ 137 maps start in night mode. */
+        const val DEFAULT_MAP_STYLE = 2
         val KEY_SHOW_ONLY_FAVORITES_PREF = booleanPreferencesKey("show_only_favorites")
         val KEY_SHOW_WAYPOINTS_PREF = booleanPreferencesKey("show_waypoints")
         val KEY_SHOW_PRECISION_CIRCLE_PREF = booleanPreferencesKey("show_precision_circle")

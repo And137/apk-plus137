@@ -128,6 +128,7 @@ class NodeListViewModel(
                 onlyEncrypted = prefs.onlyEncrypted,
                 excludeMqtt = prefs.excludeMqtt,
                 excludeUnheard = prefs.excludeUnheard && unheardAllowed,
+                onlyFwPlus = prefs.onlyFwPlus,
             )
         }
 
@@ -296,6 +297,8 @@ data class NodeFilterState(
     val onlyEncrypted: Boolean = false,
     val excludeMqtt: Boolean = false,
     val excludeUnheard: Boolean = false,
+    /** apk-plus137: only nodes known to run FW+ firmware. */
+    val onlyFwPlus: Boolean = false,
 ) {
     /** True if any user-applied filter is narrowing the visible node set. Unknown nodes are shown unless opted out. */
     val isActive: Boolean
@@ -308,5 +311,6 @@ data class NodeFilterState(
                 onlySigned ||
                 onlyEncrypted ||
                 excludeMqtt ||
-                excludeUnheard
+                excludeUnheard ||
+                onlyFwPlus
 }

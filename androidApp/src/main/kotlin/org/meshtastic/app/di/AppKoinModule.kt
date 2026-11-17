@@ -111,6 +111,7 @@ class AppKoinModule {
         override val versionName: String = org.meshtastic.app.BuildConfig.VERSION_NAME
         override val absoluteMinFwVersion: String = org.meshtastic.app.BuildConfig.ABS_MIN_FW_VERSION
         override val minFwVersion: String = org.meshtastic.app.BuildConfig.MIN_FW_VERSION
+        override val plusBuild: Int = org.meshtastic.app.BuildConfig.PLUS_BUILD
     }
 
     @Single fun provideWorkManager(context: Application): WorkManager = WorkManager.getInstance(context)

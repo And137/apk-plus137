@@ -94,6 +94,7 @@ include(
     ":core:database",
     ":core:datastore",
     ":core:di",
+    ":core:fwplus",
     ":core:domain",
     ":core:konsist",
     ":core:model",

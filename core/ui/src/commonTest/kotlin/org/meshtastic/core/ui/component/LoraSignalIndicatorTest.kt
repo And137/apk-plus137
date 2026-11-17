@@ -122,6 +122,36 @@ class LoraSignalIndicatorTest {
     }
 
     @Test
+    fun `ShortSlow uses the FW+ scale ending at minus 12_5 dB`() {
+        // fw+: GOOD above -7.5, FAIR above -11, BAD down to -12.5, NONE below.
+        val preset = ModemPreset.SHORT_SLOW
+        assertEquals(Quality.GOOD, determineSignalQuality(snr = -7f, modemPreset = preset))
+        assertEquals(Quality.FAIR, determineSignalQuality(snr = -7.5f, modemPreset = preset))
+        assertEquals(Quality.FAIR, determineSignalQuality(snr = -10.75f, modemPreset = preset))
+        assertEquals(Quality.BAD, determineSignalQuality(snr = -11f, modemPreset = preset))
+        assertEquals(Quality.BAD, determineSignalQuality(snr = -12.5f, modemPreset = preset))
+        assertEquals(Quality.NONE, determineSignalQuality(snr = -12.75f, modemPreset = preset))
+    }
+
+    @Test
+    fun `ShortSlow scale also applies to the noise-floor margin`() {
+        // SNR -5 -> GOOD alone; rssi(-82) - noiseFloor(-70) = -12 -> BAD on the ShortSlow scale, the worse tier.
+        val quality =
+            determineSignalQuality(snr = -5f, modemPreset = ModemPreset.SHORT_SLOW, rssi = -82, noiseFloor = -70)
+        assertEquals(Quality.BAD, quality)
+    }
+
+    @Test
+    fun `presets other than ShortSlow keep the default bands`() {
+        // NarrowSlow shares ShortSlow's SF8 floor (-10) but keeps limit-5.5 / limit-7.5.
+        val preset = ModemPreset.NARROW_SLOW
+        assertEquals(Quality.GOOD, determineSignalQuality(snr = -9f, modemPreset = preset))
+        assertEquals(Quality.FAIR, determineSignalQuality(snr = -15f, modemPreset = preset))
+        assertEquals(Quality.BAD, determineSignalQuality(snr = -17.5f, modemPreset = preset))
+        assertEquals(Quality.NONE, determineSignalQuality(snr = -18f, modemPreset = preset))
+    }
+
+    @Test
     fun `a zero SNR reading is rated rather than treated as missing`() {
         // 0 dB sits well above every preset's demod floor, so it is an excellent signal — not an absent one. If a
         // presence check ever folds zero into "unknown", this is the reading that disappears.

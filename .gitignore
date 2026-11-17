@@ -111,3 +111,14 @@ build-scan-*.scan
 # Python bytecode from scripts/
 __pycache__/
 *.pyc
+
+# apk-plus137: AI assistant helper files are kept locally, not published
+/.claude/
+/.skills/
+/.specify/
+/.gemini/
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/.github/copilot-instructions.md
+/.github/copilot-commit-message-instructions.md

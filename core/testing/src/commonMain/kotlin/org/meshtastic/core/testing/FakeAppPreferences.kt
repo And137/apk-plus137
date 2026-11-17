@@ -134,6 +134,20 @@ class FakeUiPrefs : UiPrefs {
         hasShownNotPairedWarning.value = shown
     }
 
+    override val showRememberedDevices = MutableStateFlow(false)
+
+    override fun setShowRememberedDevices(show: Boolean) {
+        showRememberedDevices.value = show
+    }
+
+    override val deviceLabels = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    override fun setDeviceLabel(fullAddress: String, label: String?) {
+        val trimmed = label?.trim().orEmpty()
+        deviceLabels.value =
+            if (trimmed.isEmpty()) deviceLabels.value - fullAddress else deviceLabels.value + (fullAddress to trimmed)
+    }
+
     override val showQuickChat = MutableStateFlow(true)
 
     override fun toggleShowQuickChat() {

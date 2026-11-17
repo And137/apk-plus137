@@ -41,6 +41,8 @@ data class NodeFilterPrefs(
     val excludeMqtt: Boolean = false,
     /** Hide nodes not heard since the radio's current LoRa config took effect. */
     val excludeUnheard: Boolean = false,
+    /** apk-plus137: show only nodes known to run FW+ firmware. */
+    val onlyFwPlus: Boolean = false,
 )
 
 /**

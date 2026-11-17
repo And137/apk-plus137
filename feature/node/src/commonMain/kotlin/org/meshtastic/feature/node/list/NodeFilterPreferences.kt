@@ -131,4 +131,8 @@ open class NodeFilterPreferences constructor(private val uiPrefs: UiPrefs) {
     open fun toggleExcludeUnheard() {
         uiPrefs.updateNodeFilters { it.copy(excludeUnheard = !it.excludeUnheard) }
     }
+
+    open fun toggleOnlyFwPlus() {
+        uiPrefs.updateNodeFilters { it.copy(onlyFwPlus = !it.onlyFwPlus) }
+    }
 }

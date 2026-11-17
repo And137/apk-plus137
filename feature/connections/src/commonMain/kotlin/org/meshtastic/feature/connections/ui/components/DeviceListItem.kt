@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +56,7 @@ import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.action_select_device
 import org.meshtastic.core.resources.add
 import org.meshtastic.core.resources.bluetooth
+import org.meshtastic.core.resources.fwplus_device_label_edit
 import org.meshtastic.core.resources.getStringSuspend
 import org.meshtastic.core.resources.network
 import org.meshtastic.core.resources.remove
@@ -66,6 +68,7 @@ import org.meshtastic.core.ui.icon.Add
 import org.meshtastic.core.ui.icon.Bluetooth
 import org.meshtastic.core.ui.icon.BluetoothConnected
 import org.meshtastic.core.ui.icon.BluetoothSearching
+import org.meshtastic.core.ui.icon.Edit
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Usb
 import org.meshtastic.core.ui.icon.Wifi
@@ -83,6 +86,8 @@ fun DeviceListItem(
     modifier: Modifier = Modifier,
     onDelete: (() -> Unit)? = null,
     rssi: Int? = null,
+    label: String? = null,
+    onEditLabel: (() -> Unit)? = null,
 ) {
     // Throttle the RSSI updates to match the connected device polling rate. The value stays nullable end-to-end:
     // 0 dBm is the strongest reading on this scale, so defaulting to it would render an unknown signal as excellent.
@@ -142,6 +147,10 @@ fun DeviceListItem(
         produceState<String?>(null, resourceEnvironment) {
             value = getStringSuspend(resourceEnvironment, Res.string.remove)
         }
+    val editLabel by
+        produceState<String?>(null, resourceEnvironment) {
+            value = getStringSuspend(resourceEnvironment, Res.string.fwplus_device_label_edit)
+        }
     val isSelected = connectionState is ConnectionState.Connected
     val clickableModifier =
         if (onDelete != null) {
@@ -166,7 +175,7 @@ fun DeviceListItem(
 
     ListItem(
         modifier = modifier.fillMaxWidth().then(clickableModifier).padding(vertical = 4.dp),
-        headlineContent = { DeviceHeadline(device = device) },
+        headlineContent = { DeviceHeadline(device = device, label = label) },
         leadingContent = {
             Icon(
                 imageVector = icon,
@@ -180,6 +189,14 @@ fun DeviceListItem(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (rssi != null) {
                     Rssi(rssi = displayedRssi, label = rssiLabel.orEmpty())
+                }
+                onEditLabel?.let { edit ->
+                    IconButton(onClick = edit) {
+                        Icon(
+                            imageVector = MeshtasticIcons.Edit,
+                            contentDescription = editLabel,
+                        )
+                    }
                 }
 
                 if (connectionState is ConnectionState.Connecting) {
@@ -200,15 +217,19 @@ fun DeviceListItem(
  * name. The name is allowed to wrap to two lines so long names are legible rather than truncated at a single line.
  */
 @Composable
-private fun DeviceHeadline(device: DeviceListEntry) {
+private fun DeviceHeadline(device: DeviceListEntry, label: String?) {
     val node = device.node
+    // A name the user gave the device replaces the advertised / node name; the address stays below it.
     if (node != null) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NodeChip(node = node)
-            DeviceName(text = node.effectiveLongName.ifBlank { device.name }, modifier = Modifier.weight(1f))
+            DeviceName(
+                text = label ?: node.effectiveLongName.ifBlank { device.name },
+                modifier = Modifier.weight(1f),
+            )
         }
     } else {
-        DeviceName(text = device.name)
+        DeviceName(text = label ?: device.name)
     }
 }
 

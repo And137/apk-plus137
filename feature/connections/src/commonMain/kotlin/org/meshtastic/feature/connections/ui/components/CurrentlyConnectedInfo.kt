@@ -112,6 +112,7 @@ fun CurrentlyConnectedInfo(
     modifier: Modifier = Modifier,
     bleDevice: DeviceListEntry.Ble? = null,
     onClickLora: () -> Unit = {},
+    deviceLabel: String? = null,
 ) {
     // Null until the first successful read: 0 dBm is the strongest value on this scale, not "unknown".
     var rssi by remember(bleDevice?.device?.address) { mutableStateOf<Int?>(null) }
@@ -156,6 +157,16 @@ fun CurrentlyConnectedInfo(
 
             Column(modifier = Modifier.weight(1f, fill = true)) {
                 Text(text = node.effectiveLongName, style = MaterialTheme.typography.titleMediumEmphasized)
+                // The node keeps its mesh name here; the user's name for the device is a small line below.
+                deviceLabel?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
                 text.firmwareVersion?.let { firmwareVersion ->
                     Text(

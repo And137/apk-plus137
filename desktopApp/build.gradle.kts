@@ -95,6 +95,7 @@ val generateBuildConfig =
             |object DesktopBuildConfig {
             |    const val VERSION_CODE: Int = ${versionInfo.versionCode}
             |    const val VERSION_NAME: String = "${versionInfo.versionName}"
+            |    const val PLUS_BUILD: Int = ${versionInfo.plusBuild}
             |    const val IS_DEBUG: Boolean = $resolvedIsDebug
             |    const val APPLICATION_ID: String = "org.meshtastic.MeshtasticDesktop"
             |    const val MIN_FW_VERSION: String = "${versionInfo.minFwVersion}"
@@ -189,7 +190,7 @@ compose.desktop {
                 "-Dapple.awt.application.appearance=system",
                 "-Dapple.awt.application.name=Meshtastic Desktop",
                 "-Dcom.apple.mrj.application.apple.menu.about.name=Meshtastic Desktop",
-                "-Dcom.apple.bundle.identifier=org.meshtastic.MeshtasticDesktop",
+                "-Dcom.apple.bundle.identifier=io.github.and137.meshplus137",
             )
         jvmArgs(*desktopJvmArgs.toTypedArray())
 
@@ -207,7 +208,8 @@ compose.desktop {
         }
 
         nativeDistributions {
-            packageName = "Meshtastic Desktop"
+            // apk-plus137: own name, vendor and upgrade UUID so it never replaces an official Meshtastic install.
+            packageName = "Mesh Plus 137"
 
             // Ensure critical JVM modules are included in the custom JRE bundled with the app.
             // jdeps might miss some of these if they are loaded via reflection or JNI.
@@ -233,16 +235,17 @@ compose.desktop {
             macOS {
                 iconFile.set(project.file("src/main/resources/icon.icns"))
                 minimumSystemVersion = "12.0"
-                bundleID = "org.meshtastic.MeshtasticDesktop"
+                // apk-plus137: own bundle id, so it never replaces an official Meshtastic install.
+                bundleID = "io.github.and137.meshplus137"
                 appCategory = "public.app-category.utilities"
                 entitlementsFile.set(project.file("entitlements.plist"))
                 infoPlist {
                     extraKeysRawXml =
                         """
                         <key>NSBluetoothAlwaysUsageDescription</key>
-                        <string>Meshtastic uses Bluetooth to communicate with your Meshtastic radio device.</string>
+                        <string>Mesh+ 137 uses Bluetooth to communicate with your Meshtastic radio device.</string>
                         <key>NSLocalNetworkUsageDescription</key>
-                        <string>Meshtastic uses your local network to discover Meshtastic devices connected via WiFi.</string>
+                        <string>Mesh+ 137 uses your local network to discover Meshtastic devices connected via WiFi.</string>
                         <key>NSUserNotificationAlertStyle</key>
                         <string>alert</string>
                         <key>CFBundleURLTypes</key>
@@ -280,18 +283,20 @@ compose.desktop {
             }
             windows {
                 iconFile.set(project.file("src/main/resources/icon.ico"))
-                menuGroup = "Meshtastic"
+                menuGroup = "Mesh+ 137"
                 shortcut = true
                 menu = true
                 dirChooser = true
                 // Stable UUID ensures MSI upgrades replace the previous installation
                 // rather than installing side-by-side. NEVER change this value.
-                upgradeUuid = "4974EA87-98AA-470E-B590-0BD5CF9FAE8E"
+                upgradeUuid = "AD46DAA6-63CB-45E2-88A4-79B767F4D263"
             }
             linux {
                 iconFile.set(project.file("src/main/resources/icon.png"))
+                // apk-plus137: deb/rpm package names cannot contain spaces; own maintainer, never upstream's.
+                packageName = "mesh-plus-137"
                 menuGroup = "Network"
-                debMaintainer = "developers@meshtastic.org"
+                debMaintainer = "And137 <And137@users.noreply.github.com>"
                 appCategory = "Network"
                 rpmLicenseType = "GPL-3.0-or-later"
             }
@@ -308,10 +313,19 @@ compose.desktop {
             // Reuse the resolved version from the top of this script (mirrors app/build.gradle.kts).
             // Native installers require strict numeric semantic versions (X.Y.Z) without suffixes.
             val sanitizedVersion = Regex("^\\d+\\.\\d+\\.\\d+").find(versionInfo.versionName)?.value ?: "1.0.0"
-            packageVersion = sanitizedVersion
+            // apk-plus137: fold PLUS_BUILD into the patch (2.8.5 build 2 -> 2.8.502) so an installer for a new
+            // Mesh+ 137 release on the same upstream base still upgrades the previous one. A later upstream patch
+            // (2.8.6 -> 2.8.601) and minor (2.9.0 -> 2.9.1) both still sort above it.
+            val (major, minor, patch) = sanitizedVersion.split('.').map { it.toInt() }
+            packageVersion =
+                if (versionInfo.plusBuild > 0) {
+                    "$major.$minor.${patch * 100 + versionInfo.plusBuild}"
+                } else {
+                    sanitizedVersion
+                }
 
-            description = "Meshtastic Desktop Application"
-            vendor = "Meshtastic LLC"
+            description = "Mesh+ 137 desktop client (apk-plus137, a modified Meshtastic-Android)"
+            vendor = "And137"
         }
     }
 }
