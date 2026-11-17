@@ -111,7 +111,6 @@ import org.meshtastic.core.resources.open_bluetooth_settings
 import org.meshtastic.core.resources.open_location_settings
 import org.meshtastic.core.resources.open_settings
 import org.meshtastic.core.resources.open_wifi_settings
-import org.meshtastic.core.resources.radio_setup_title
 import org.meshtastic.core.resources.rssi
 import org.meshtastic.core.resources.set_your_region
 import org.meshtastic.core.resources.transmit_disabled
@@ -229,18 +228,22 @@ internal fun ConfigurationWarningCards(
         )
 
     // Emitted only when there is a card to show: an empty column would still take a gap in the caller's spacing.
-    if (!showWarnings) return
+    // A configured radio (region set) gets no setup card here; the guided setup stays reachable from Settings.
+    val txCard = txDisabled && !regionUnset
+    if (!showWarnings || !(regionUnset || txCard)) return
     Column(verticalArrangement = Arrangement.spacedBy(HeaderItemSpacing)) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            ListItem(
-                leadingIcon = MeshtasticIcons.Language,
-                text = stringResource(if (regionUnset) Res.string.set_your_region else Res.string.radio_setup_title),
-                onClick = { onConfigNavigate(SettingsRoute.RadioSetup(radioSetupAddress)) },
-            )
+        if (regionUnset) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    leadingIcon = MeshtasticIcons.Language,
+                    text = stringResource(Res.string.set_your_region),
+                    onClick = { onConfigNavigate(SettingsRoute.RadioSetup(radioSetupAddress)) },
+                )
+            }
         }
 
         // An unset region already disables transmit and has its own card, so do not blame one root cause twice.
-        if (txDisabled && !regionUnset) {
+        if (txCard) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 ListItem(
                     leadingIcon = MeshtasticIcons.CellTower,

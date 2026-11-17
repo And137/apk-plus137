@@ -56,7 +56,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
     }
 
     override val theme: StateFlow<Int> =
-        dataStore.data.map { it[KEY_THEME] ?: -1 }.stateIn(scope, SharingStarted.Lazily, -1)
+        dataStore.data.map { it[KEY_THEME] ?: DEFAULT_THEME }.stateIn(scope, SharingStarted.Lazily, DEFAULT_THEME)
 
     override fun setTheme(value: Int) {
         scope.launch { dataStore.edit { it[KEY_THEME] = value } }
@@ -365,6 +365,9 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
         val KEY_THEME = intPreferencesKey("theme")
+
+        /** Mesh+ 137 starts dark: AppCompatDelegate.MODE_NIGHT_YES. */
+        const val DEFAULT_THEME = 2
         private val KEY_UNITS_OVERRIDE = intPreferencesKey("units_override")
         val KEY_LOCALE = stringPreferencesKey("locale")
         val KEY_NODE_SORT = intPreferencesKey("node-sort-option")

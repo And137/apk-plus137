@@ -36,6 +36,8 @@ data class MetricsState(
     val node: Node? = null,
     val deviceMetrics: List<Telemetry> = emptyList(),
     val localStats: List<Telemetry> = emptyList(),
+    /** FW+ `Telemetry.local_stats_extended` reports from this node, newest first. */
+    val localStatsExtended: List<Telemetry> = emptyList(),
     val signalMetrics: List<MeshPacket> = emptyList(),
     val powerMetrics: List<Telemetry> = emptyList(),
     val hostMetrics: List<Telemetry> = emptyList(),

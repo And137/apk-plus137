@@ -80,6 +80,12 @@ data class Node(
      */
     val heardOnCurrentLora: Boolean = true,
     val nodeStatus: String? = null,
+    /** FW+ NodeMod text status (port NODE_MOD_APP), broadcast by firmware-plus nodes. Null when none was received. */
+    val fwPlusStatus: String? = null,
+    /** FW+ NodeMod emoji, shown after [fwPlusStatus]. Null when none was received. */
+    val fwPlusEmoji: String? = null,
+    /** True once this node has shown it runs FW+ firmware (answered OnDemand, sent NodeMod or extended stats). */
+    val fwPlusSeen: Boolean = false,
     /** The transport mechanism this node was last heard over (see [MeshPacket.TransportMechanism]). */
     val lastTransport: Int = 0,
     /**
@@ -91,6 +97,10 @@ data class Node(
     val newPublicKey: ByteString? = null,
 ) {
     val capabilities: Capabilities by lazy { Capabilities(metadata?.firmware_version) }
+
+    /** The FW+ status line as shown on the node card: text then emoji, or null when the node sent neither. */
+    val fwPlusStatusLine: String?
+        get() = listOfNotNull(fwPlusStatus, fwPlusEmoji).joinToString(" ").takeIf { it.isNotBlank() }
 
     /**
      * True when the radio does not report having heard this node over RF on the LoRa configuration in force now, and it
@@ -329,4 +339,5 @@ fun Node.matchesSearch(filter: String): Boolean = filter.isBlank() ||
     user.short_name.contains(filter, ignoreCase = true) ||
     user.id.contains(filter, ignoreCase = true) ||
     nodeStatus?.contains(filter, ignoreCase = true) == true ||
+    fwPlusStatus?.contains(filter, ignoreCase = true) == true ||
     unsignedNum.toString().contains(filter, ignoreCase = true)

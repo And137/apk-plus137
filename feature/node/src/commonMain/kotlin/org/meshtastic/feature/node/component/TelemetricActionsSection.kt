@@ -63,6 +63,7 @@ import org.meshtastic.core.resources.telemetry
 import org.meshtastic.core.resources.userinfo
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Refresh
+import org.meshtastic.feature.node.fwplus.looksFwPlus
 import org.meshtastic.feature.node.model.LogsType
 import org.meshtastic.feature.node.model.NodeDetailAction
 import org.meshtastic.proto.Telemetry
@@ -164,7 +165,12 @@ private fun rememberTelemetricFeatures(
             icon = LogsType.NEIGHBOR_INFO.icon,
             requestAction = { NodeMenuAction.RequestNeighborInfo(it) },
             logsType = LogsType.NEIGHBOR_INFO,
-            isVisible = { it.capabilities.canRequestNeighborInfo },
+            // Upstream hides the request until it is reliable everywhere; FW+ firmware answers it (one reply per
+            // 3 minutes), so it is offered for remote nodes on an FW+ mesh.
+            isVisible = { n ->
+                n.capabilities.canRequestNeighborInfo ||
+                    (!isLocal && (n.looksFwPlus || ourNode?.looksFwPlus == true))
+            },
             cooldownTimestamp = lastRequestNeighborsTime,
             cooldownDuration = REQUEST_NEIGHBORS_COOL_DOWN_TIME_MS,
         ),

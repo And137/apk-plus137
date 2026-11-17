@@ -799,6 +799,49 @@ class MeshtasticDatabaseMigrationTest {
         }
     }
 
+    /**
+     * 69 → 70 adds the FW+ NodeMod columns `nodes.fwplus_status` and `nodes.fwplus_emoji`. Existing nodes keep their
+     * data and arrive with both NULL, the same as a node that never broadcast a FW+ status.
+     */
+    @Test
+    fun fwPlusStatusColumnsAddedAsNullWithoutDisturbingNodes() = runTest {
+        helper.createDatabase(FW_PLUS_STATUS_FROM_VERSION).use { connection ->
+            val columns =
+                "num, user, position, latitude, longitude, snr, rssi, last_heard, device_metrics, channel, " +
+                    "via_mqtt, hops_away, is_favorite, environment_metrics, power_metrics, paxcounter"
+            connection.execSQL(
+                "INSERT INTO nodes ($columns, long_name, node_status) VALUES " +
+                    "(42, x'', x'', 0.0, 0.0, 0.0, 0, 1000, x'', 0, 0, 1, 1, x'', x'', x'', 'Minnie Mouse', 'on duty')",
+            )
+        }
+
+        helper.runMigrationsAndValidate(FW_PLUS_STATUS_TO_VERSION, emptyList()).use { connection ->
+            assertEquals(listOf("Minnie Mouse"), queryColumn(connection, "SELECT long_name FROM nodes WHERE num = 42"))
+            assertEquals(listOf("on duty"), queryColumn(connection, "SELECT node_status FROM nodes WHERE num = 42"))
+            assertEquals(listOf(null), queryColumn(connection, "SELECT fwplus_status FROM nodes WHERE num = 42"))
+            assertEquals(listOf(null), queryColumn(connection, "SELECT fwplus_emoji FROM nodes WHERE num = 42"))
+        }
+    }
+
+    /** 70 → 71 adds `nodes.fwplus_seen`; existing nodes arrive as not yet seen running FW+ (0), never NULL. */
+    @Test
+    fun fwPlusSeenColumnAddedAsFalseWithoutDisturbingNodes() = runTest {
+        helper.createDatabase(FW_PLUS_SEEN_FROM_VERSION).use { connection ->
+            val columns =
+                "num, user, position, latitude, longitude, snr, rssi, last_heard, device_metrics, channel, " +
+                    "via_mqtt, hops_away, is_favorite, environment_metrics, power_metrics, paxcounter"
+            connection.execSQL(
+                "INSERT INTO nodes ($columns, long_name, fwplus_status) VALUES " +
+                    "(42, x'', x'', 0.0, 0.0, 0.0, 0, 1000, x'', 0, 0, 1, 1, x'', x'', x'', 'Minnie Mouse', 'on air')",
+            )
+        }
+
+        helper.runMigrationsAndValidate(FW_PLUS_SEEN_TO_VERSION, emptyList()).use { connection ->
+            assertEquals(listOf("on air"), queryColumn(connection, "SELECT fwplus_status FROM nodes WHERE num = 42"))
+            assertEquals(listOf("0"), queryColumn(connection, "SELECT fwplus_seen FROM nodes WHERE num = 42"))
+        }
+    }
+
     /** The `detail` column of `EXPLAIN QUERY PLAN` for [sql], one entry per plan step. */
     private fun queryPlan(connection: SQLiteConnection, sql: String): List<String> =
         connection.prepare("EXPLAIN QUERY PLAN $sql").use { statement ->
@@ -856,6 +899,10 @@ class MeshtasticDatabaseMigrationTest {
         const val LOG_INDEXES_TO_VERSION = 68
         const val SIGNAL_SAMPLE_FROM_VERSION = 68
         const val SIGNAL_SAMPLE_TO_VERSION = 69
+        const val FW_PLUS_STATUS_FROM_VERSION = 69
+        const val FW_PLUS_STATUS_TO_VERSION = 70
+        const val FW_PLUS_SEEN_FROM_VERSION = 70
+        const val FW_PLUS_SEEN_TO_VERSION = 71
         const val QUERY_PLAN_DETAIL_COLUMN = 3
 
         /** Every hand-written migration, which a walk across 52→53, 63→64 or 67→68 must be given. */

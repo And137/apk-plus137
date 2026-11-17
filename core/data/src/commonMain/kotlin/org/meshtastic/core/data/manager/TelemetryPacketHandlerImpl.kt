@@ -20,6 +20,7 @@ import co.touchlab.kermit.Logger
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.ServiceScope
 import org.meshtastic.core.common.util.clampTimestampToNow
+import org.meshtastic.core.fwplus.localStatsExtended
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.util.decodeOrNull
@@ -77,6 +78,10 @@ class TelemetryPacketHandlerImpl(
             telemetry.power_metrics?.let { nextNode = nextNode.copy(powerMetrics = it) }
             telemetry.air_quality_metrics?.let { nextNode = nextNode.copy(airQualityMetrics = it) }
             telemetry.soil_water_metrics?.let { nextNode = nextNode.copy(soilWaterMetrics = it) }
+            // Extended local stats exist only in FW+ firmware.
+            if (!nextNode.fwPlusSeen && telemetry.localStatsExtended != null) {
+                nextNode = nextNode.copy(fwPlusSeen = true)
+            }
             val telemetryTime = if (telemetry.time != 0) telemetry.time else nextNode.lastHeard
             val newLastHeard = clampTimestampToNow(maxOf(nextNode.lastHeard, telemetryTime))
             nextNode.copy(lastHeard = newLastHeard)
