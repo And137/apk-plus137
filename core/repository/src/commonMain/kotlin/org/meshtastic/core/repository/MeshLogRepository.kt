@@ -17,6 +17,7 @@
 package org.meshtastic.core.repository
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import org.meshtastic.core.model.MeshLog
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.MyNodeInfo
@@ -53,6 +54,12 @@ interface MeshLogRepository {
 
     /** Retrieves telemetry history for a specific node, automatically handling local node redirection. */
     fun getTelemetryFrom(nodeNum: Int): Flow<List<Telemetry>>
+
+    /**
+     * FW+ packet counter: how many mesh packets were received from [nodeNum] since [sinceMillis], counted from the
+     * packet log (so it covers only what the log retention keeps). Handles local node redirection.
+     */
+    fun countPacketsFrom(nodeNum: Int, sinceMillis: Long): Flow<Int> = flowOf(0)
 
     /**
      * Retrieves all outgoing request logs for a specific [targetNodeNum] and [portNum].

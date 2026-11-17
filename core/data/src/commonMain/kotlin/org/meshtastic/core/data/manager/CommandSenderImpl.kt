@@ -26,6 +26,7 @@ import okio.ByteString.Companion.toByteString
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.ServiceScope
 import org.meshtastic.core.common.util.nowMillis
+import org.meshtastic.core.fwplus.portNumValue
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.NodeAddress
@@ -149,7 +150,8 @@ class CommandSenderImpl(
         val data =
             Data.Builder()
                 .also { wb ->
-                    wb.portnum = PortNum.fromValue(p.dataType) ?: PortNum.UNKNOWN_APP
+                    // Also carries FW+ ports the upstream enum lacks (see portNumValue).
+                    wb.portNumValue(p.dataType)
                     wb.payload = bytes
                     wb.reply_id = p.replyId ?: 0
                     wb.emoji = p.emoji
@@ -183,7 +185,7 @@ class CommandSenderImpl(
                 decoded =
                 Data.Builder()
                     .also { wb ->
-                        wb.portnum = PortNum.fromValue(p.dataType) ?: PortNum.UNKNOWN_APP
+                        wb.portNumValue(p.dataType)
                         wb.payload = p.bytes ?: ByteString.EMPTY
                         wb.reply_id = p.replyId ?: 0
                         wb.emoji = p.emoji

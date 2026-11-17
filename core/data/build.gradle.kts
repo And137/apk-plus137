@@ -31,6 +31,7 @@ kotlin {
             implementation(projects.core.common)
             implementation(projects.core.database)
             implementation(projects.core.datastore)
+            implementation(projects.core.fwplus)
             implementation(projects.core.di)
             implementation(projects.core.model)
             implementation(projects.core.network)
